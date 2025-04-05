@@ -601,7 +601,7 @@ public class QuirinBankAGPDFExtractor extends AbstractPDFExtractor
         DocumentType type = new DocumentType("Kontoauszug");
         this.addDocumentTyp(type);
 
-        Block buySellBlock = new Block("^Wertpapier (Kauf|Verkauf), Ref\\.: [\\d]+ [\\d]{2}\\.[\\d]{2}\\.[\\d]{4} [\\d]{2}\\.[\\d]{2}\\.[\\d]{4} (\\-)?[\\.,\\d]+ [\\w]{3}$");
+        Block buySellBlock = new Block("^Wertpapier (Kauf|Verkauf)( Storno)?, Ref\\.: [\\d]+ [\\d]{2}\\.[\\d]{2}\\.[\\d]{4} [\\d]{2}\\.[\\d]{2}\\.[\\d]{4} (\\-)?[\\.,\\d]+ [\\w]{3}$");
         type.addBlock(buySellBlock);
         buySellBlock.setMaxSize(4);
         buySellBlock.set(new Transaction<BuySellEntry>()
@@ -612,9 +612,16 @@ public class QuirinBankAGPDFExtractor extends AbstractPDFExtractor
                     return entry;
                 })
 
-                // Is type --> "Verkauf" change from BUY to SELL
+                // Check for Storno first - if present change type to opposite
                 .section("type").optional()
-                .match("^Wertpapier (?<type>(Kauf|Verkauf)), Ref\\.: [\\d]+ [\\d]{2}\\.[\\d]{2}\\.[\\d]{4} [\\d]{2}\\.[\\d]{2}\\.[\\d]{4} (\\-)?[\\.,\\d]+ [\\w]{3}$")
+                .match("^Wertpapier (?<type>(Kauf|Verkauf)) Storno, Ref\\.: .*$")
+                .assign((t, v) -> {
+                    if (v.get("type").equals("Kauf"))
+                        t.setType(PortfolioTransaction.Type.SELL);
+                })
+
+                .section("type").optional()
+                .match("^Wertpapier (?<type>(Kauf|Verkauf)), Ref\\.: .*$")
                 .assign((t, v) -> {
                     if (v.get("type").equals("Verkauf"))
                         t.setType(PortfolioTransaction.Type.SELL);
@@ -625,7 +632,7 @@ public class QuirinBankAGPDFExtractor extends AbstractPDFExtractor
                 // o.N.
                 // LU1681045370, ST 102,054
                 .section("name", "nameContinued", "isin", "currency").optional()
-                .match("^Wertpapier (Kauf|Verkauf), Ref\\.: [\\d]+ [\\d]{2}\\.[\\d]{2}\\.[\\d]{4} [\\d]{2}\\.[\\d]{2}\\.[\\d]{4} (\\-)?[\\.,\\d]+ (?<currency>[\\w]{3})$")
+                .match("^Wertpapier (Kauf|Verkauf)( Storno)?, Ref\\.: [\\d]+ [\\d]{2}\\.[\\d]{2}\\.[\\d]{4} [\\d]{2}\\.[\\d]{2}\\.[\\d]{4} (\\-)?[\\.,\\d]+ (?<currency>[\\w]{3})$")
                 .match("^(?<name>.*)$")
                 .match("^(?<nameContinued>.*)$")
                 .match("^(?<isin>[A-Z]{2}[A-Z0-9]{9}[0-9]), ST (\\-)?[\\.,\\d]+$")
@@ -635,7 +642,7 @@ public class QuirinBankAGPDFExtractor extends AbstractPDFExtractor
                 // Xtr.(IE)MSCI World Value Registered Shares 1C USD o.N.
                 // IE00BL25JM42, ST 16,091
                 .section("name", "isin", "currency").optional()
-                .match("^Wertpapier (Kauf|Verkauf), Ref\\.: [\\d]+ [\\d]{2}\\.[\\d]{2}\\.[\\d]{4} [\\d]{2}\\.[\\d]{2}\\.[\\d]{4} (\\-)?[\\.,\\d]+ (?<currency>[\\w]{3})$")
+                .match("^Wertpapier (Kauf|Verkauf)( Storno)?, Ref\\.: [\\d]+ [\\d]{2}\\.[\\d]{2}\\.[\\d]{4} [\\d]{2}\\.[\\d]{2}\\.[\\d]{4} (\\-)?[\\.,\\d]+ (?<currency>[\\w]{3})$")
                 .match("^(?<name>.*)$")
                 .match("^(?<isin>[A-Z]{2}[A-Z0-9]{9}[0-9]), ST (\\-)?[\\.,\\d]+$")
                 .assign((t, v) -> t.setSecurity(getOrCreateSecurity(v)))
@@ -648,12 +655,12 @@ public class QuirinBankAGPDFExtractor extends AbstractPDFExtractor
 
                 // Wertpapier Kauf, Ref.: 133305911 03.06.2020 05.06.2020 -408,26 EUR
                 .section("date")
-                .match("^Wertpapier (Kauf|Verkauf), Ref\\.: [\\d]+ (?<date>[\\d]{2}\\.[\\d]{2}\\.[\\d]{4}) [\\d]{2}\\.[\\d]{2}\\.[\\d]{4} (\\-)?[\\.,\\d]+ [\\w]{3}$")
+                .match("^Wertpapier (Kauf|Verkauf)( Storno)?, Ref\\.: [\\d]+ (?<date>[\\d]{2}\\.[\\d]{2}\\.[\\d]{4}) [\\d]{2}\\.[\\d]{2}\\.[\\d]{4} (\\-)?[\\.,\\d]+ [\\w]{3}$")
                 .assign((t, v) -> t.setDate(asDate(v.get("date"))))
 
                 // Wertpapier Kauf, Ref.: 133305911 03.06.2020 05.06.2020 -408,26 EUR
                 .section("amount", "currency").optional()
-                .match("^Wertpapier (Kauf|Verkauf), Ref\\.: [\\d]+ [\\d]{2}\\.[\\d]{2}\\.[\\d]{4} [\\d]{2}\\.[\\d]{2}\\.[\\d]{4} (\\-)?(?<amount>[\\.,\\d]+) (?<currency>[\\w]{3})$")
+                .match("^Wertpapier (Kauf|Verkauf)( Storno)?, Ref\\.: [\\d]+ [\\d]{2}\\.[\\d]{2}\\.[\\d]{4} [\\d]{2}\\.[\\d]{2}\\.[\\d]{4} (\\-)?(?<amount>[\\.,\\d]+) (?<currency>[\\w]{3})$")
                 .assign((t, v) -> {
                     t.setCurrencyCode(asCurrencyCode(v.get("currency")));
                     t.setAmount(asAmount(v.get("amount")));
