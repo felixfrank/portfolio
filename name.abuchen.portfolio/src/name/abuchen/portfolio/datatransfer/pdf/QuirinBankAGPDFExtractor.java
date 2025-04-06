@@ -7,8 +7,11 @@ import static name.abuchen.portfolio.util.TextUtil.replaceMultipleBlanks;
 import static name.abuchen.portfolio.util.TextUtil.stripBlanks;
 import static name.abuchen.portfolio.util.TextUtil.trim;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.text.MessageFormat;
 import java.util.Map;
+import java.util.Optional;
 
 import name.abuchen.portfolio.Messages;
 import name.abuchen.portfolio.datatransfer.ExtrExchangeRate;
@@ -21,6 +24,9 @@ import name.abuchen.portfolio.model.BuySellEntry;
 import name.abuchen.portfolio.model.Client;
 import name.abuchen.portfolio.model.PortfolioTransaction;
 import name.abuchen.portfolio.money.Money;
+import name.abuchen.portfolio.money.ExchangeRateProviderFactory;
+import name.abuchen.portfolio.money.ExchangeRateTimeSeries;
+import name.abuchen.portfolio.money.ExchangeRate;
 
 @SuppressWarnings("nls")
 public class QuirinBankAGPDFExtractor extends AbstractPDFExtractor
@@ -743,6 +749,7 @@ public class QuirinBankAGPDFExtractor extends AbstractPDFExtractor
                 // @formatter:on
 
                 // KEST: EUR -1,81, SOLI: EUR -0,09
+                // KEST: USD -1,25, KIST: USD -0,09, SOLI: USD -0,06
                 .section("currency", "tax").optional()
                 .match("^Ertr.gnisabrechnung, .*$")
                 .match("^KEST: (?<currency>[\\w]{3}) \\-(?<tax>[\\.,\\d]+)( .*)?$")
@@ -750,13 +757,92 @@ public class QuirinBankAGPDFExtractor extends AbstractPDFExtractor
                     Money tax = Money.of(asCurrencyCode(v.get("currency")), asAmount(v.get("tax")));
                     
                     if (t.getMonetaryAmount().getCurrencyCode().equals(tax.getCurrencyCode()))
+                    {
                         checkAndSetTax(tax, t, type.getCurrentContext());
+                    }
                     else
                     {
-                        t.setNote(MessageFormat.format(Messages.MsgNoExchangeRateAvailableForConversion, tax.getCurrencyCode(),
-                                        t.getMonetaryAmount().getCurrencyCode()));
+                        // Get the exchange rate provider factory
+                        ExchangeRateProviderFactory factory = new ExchangeRateProviderFactory(getClient());
+                        
+                        // Get the exchange rate time series for the conversion
+                        ExchangeRateTimeSeries series = factory.getTimeSeries(
+                            tax.getCurrencyCode(), 
+                            t.getMonetaryAmount().getCurrencyCode()
+                        );
+                        
+                        // Try to get the rate for the transaction date
+                        Optional<ExchangeRate> rate = series.lookupRate(t.getDateTime().toLocalDate());
+                        
+                        if (rate.isPresent())
+                        {
+                            // Convert the tax amount using the historical rate
+                            BigDecimal convertedAmount = BigDecimal.valueOf(tax.getAmount())
+                                .multiply(rate.get().getValue())
+                                .setScale(0, RoundingMode.HALF_DOWN);
+                            
+                            Money convertedTax = Money.of(
+                                t.getMonetaryAmount().getCurrencyCode(), 
+                                convertedAmount.longValue()
+                            );
+                            
+                            checkAndSetTax(convertedTax, t, type.getCurrentContext());
+                        }
+                        else
+                        {
+                            // If no exchange rate is available, add a note but don't discard the transaction
+                            String note = MessageFormat.format(Messages.MsgNoExchangeRateAvailableForConversion, 
+                                tax.getCurrencyCode(), t.getMonetaryAmount().getCurrencyCode());
+                            t.setNote(concatenate(t.getNote(), note, " | "));
+                        }
+                    }
+                })
 
-                        type.getCurrentContext().put("taxCurrency", v.get("currency"));   
+                .section("currency", "tax").optional()
+                .match("^Ertr.gnisabrechnung, .*$")
+                .match("^.* KIST: (?<currency>[\\w]{3}) \\-(?<tax>[\\.,\\d]+)( .*)?$")
+                .assign((t, v) -> {
+                    Money tax = Money.of(asCurrencyCode(v.get("currency")), asAmount(v.get("tax")));
+                    
+                    if (t.getMonetaryAmount().getCurrencyCode().equals(tax.getCurrencyCode()))
+                    {
+                        checkAndSetTax(tax, t, type.getCurrentContext());
+                    }
+                    else
+                    {
+                        // Get the exchange rate provider factory
+                        ExchangeRateProviderFactory factory = new ExchangeRateProviderFactory(getClient());
+                        
+                        // Get the exchange rate time series for the conversion
+                        ExchangeRateTimeSeries series = factory.getTimeSeries(
+                            tax.getCurrencyCode(), 
+                            t.getMonetaryAmount().getCurrencyCode()
+                        );
+                        
+                        // Try to get the rate for the transaction date
+                        Optional<ExchangeRate> rate = series.lookupRate(t.getDateTime().toLocalDate());
+                        
+                        if (rate.isPresent())
+                        {
+                            // Convert the tax amount using the historical rate
+                            BigDecimal convertedAmount = BigDecimal.valueOf(tax.getAmount())
+                                .multiply(rate.get().getValue())
+                                .setScale(0, RoundingMode.HALF_DOWN);
+                            
+                            Money convertedTax = Money.of(
+                                t.getMonetaryAmount().getCurrencyCode(), 
+                                convertedAmount.longValue()
+                            );
+                            
+                            checkAndSetTax(convertedTax, t, type.getCurrentContext());
+                        }
+                        else
+                        {
+                            // If no exchange rate is available, add a note but don't discard the transaction
+                            String note = MessageFormat.format(Messages.MsgNoExchangeRateAvailableForConversion, 
+                                tax.getCurrencyCode(), t.getMonetaryAmount().getCurrencyCode());
+                            t.setNote(concatenate(t.getNote(), note, " | "));
+                        }
                     }
                 })
 
@@ -771,19 +857,46 @@ public class QuirinBankAGPDFExtractor extends AbstractPDFExtractor
                         checkAndSetTax(tax, t, type.getCurrentContext());
                     else
                     {
-                        t.setNote(MessageFormat.format(Messages.MsgNoExchangeRateAvailableForConversion, tax.getCurrencyCode(),
-                                        t.getMonetaryAmount().getCurrencyCode()));
-
-                        type.getCurrentContext().put("taxCurrency", v.get("currency"));   
+                        // Get the exchange rate provider factory
+                        ExchangeRateProviderFactory factory = new ExchangeRateProviderFactory(getClient());
+                        
+                        // Get the exchange rate time series for the conversion
+                        ExchangeRateTimeSeries series = factory.getTimeSeries(
+                            tax.getCurrencyCode(), 
+                            t.getMonetaryAmount().getCurrencyCode()
+                        );
+                        
+                        // Try to get the rate for the transaction date
+                        Optional<ExchangeRate> rate = series.lookupRate(t.getDateTime().toLocalDate());
+                        
+                        if (rate.isPresent())
+                        {
+                            // Convert the tax amount using the historical rate
+                            BigDecimal convertedAmount = BigDecimal.valueOf(tax.getAmount())
+                                .multiply(rate.get().getValue())
+                                .setScale(0, RoundingMode.HALF_DOWN);
+                            
+                            Money convertedTax = Money.of(
+                                t.getMonetaryAmount().getCurrencyCode(), 
+                                convertedAmount.longValue()
+                            );
+                            
+                            checkAndSetTax(convertedTax, t, type.getCurrentContext());
+                        }
+                        else
+                        {
+                            // If no exchange rate is available, add a note but don't discard the transaction
+                            String note = MessageFormat.format(Messages.MsgNoExchangeRateAvailableForConversion, 
+                                tax.getCurrencyCode(), t.getMonetaryAmount().getCurrencyCode());
+                            t.setNote(concatenate(t.getNote(), note, " | "));
+                        }
                     }
                 })
 
                 .wrap(t -> {
                     if (t.getCurrencyCode() != null && t.getAmount() != 0)
                     {
-                        if (t.getNote() == null || !t.getNote().equals(MessageFormat.format(Messages.MsgNoExchangeRateAvailableForConversion, type.getCurrentContext().get("taxCurrency"),
-                                        t.getMonetaryAmount().getCurrencyCode())))
-                            return new TransactionItem(t);
+                        return new TransactionItem(t);
                     }
                     return null;
                 }));
