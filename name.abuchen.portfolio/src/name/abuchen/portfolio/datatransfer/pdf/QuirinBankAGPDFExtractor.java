@@ -944,6 +944,7 @@ public class QuirinBankAGPDFExtractor extends AbstractPDFExtractor
                         .wrap(TransactionItem::new));
 
         Block removalBlock = new Block("^(R.ck.berweisung Inland" //
+                        + "|Konto.bertrag Umbuchung [\\d]+" //
                         + "|.berweisungsauftrag,) " //
                         + ".* \\-[\\.,\\d]+[\\s]{1,}[\\w]{3}.*$");
         type.addBlock(removalBlock);
@@ -987,7 +988,25 @@ public class QuirinBankAGPDFExtractor extends AbstractPDFExtractor
                                                             t.setCurrencyCode(asCurrencyCode(v.get("currency")));
                                                             t.setAmount(asAmount(v.get("amount")));
                                                             t.setNote(v.get("note1") + " | Ref.-Nr.: " + trim(v.get("note2")));
-                                                        }))
+                                                        }),
+                                        // @formatter:off
+                                        // Kontoübertrag Umbuchung 8052220200 87785 07.01.2020 07.01.2020 -1.000,00 EUR
+                                        // @formatter:on
+                                        section -> section //
+                                                        .attributes("note1", "note2", "date", "amount", "currency") //
+                                                        .match("^(?<note1>Konto.bertrag Umbuchung [\\d]+ [\\d]+) " //
+                                                                        + "[\\d]{2}\\.[\\d]{2}\\.[\\d]{4} " //
+                                                                        + "(?<date>[\\d]{2}\\.[\\d]{2}\\.[\\d]{4})[\\s]{1,}" //
+                                                                        + "\\-(?<amount>[\\.,\\d]+)[\\s]{1,}(?<currency>[\\w]{3})$") //
+                                                        .match("^Ref\\.: (?<note2>.*)$")
+                                                        .assign((t, v) -> {
+                                                            t.setDateTime(asDate(stripBlanks(v.get("date"))));
+                                                            t.setCurrencyCode(asCurrencyCode(v.get("currency")));
+                                                            t.setAmount(asAmount(v.get("amount")));
+                                                            t.setNote(v.get("note1") + " | Ref.-Nr.: " + trim(v.get("note2")));
+                                                        })
+
+                        )
 
                         .wrap(TransactionItem::new));
 
