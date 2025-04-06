@@ -1018,10 +1018,10 @@ public class QuirinBankAGPDFExtractor extends AbstractPDFExtractor
         //
         // Steuern auf Kontoabschluss
         // @formatter:on
-        Block taxesBlock = new Block("^Steuerbuchung Abgeltungsteuer, .* \\-[\\.,\\d]+[\\s]{1,}[\\w]{3}.*$");
-        type.addBlock(taxesBlock);
-        taxesBlock.setMaxSize(3);
-        taxesBlock.set(new Transaction<AccountTransaction>()
+        Block taxesBlock01 = new Block("^Steuerbuchung Abgeltungsteuer, .* \\-[\\.,\\d]+[\\s]{1,}[\\w]{3}.*$");
+        type.addBlock(taxesBlock01);
+        taxesBlock01.setMaxSize(3);
+        taxesBlock01.set(new Transaction<AccountTransaction>()
 
                         .subject(() -> {
                             AccountTransaction accountTransaction = new AccountTransaction();
@@ -1047,6 +1047,35 @@ public class QuirinBankAGPDFExtractor extends AbstractPDFExtractor
                                 return new TransactionItem(t);
                             return null;
                         }));
+
+        // @formatter:off
+        // Steueroptimierung 09.10.2020 09.10.2020 -12,14 EUR
+        // Ref.: 159260887
+        // @formatter:on
+        Block taxesBlock02 = new Block("^Steueroptimierung .* \\-[\\.,\\d]+[\\s]{1,}[\\w]{3}.*$");
+        type.addBlock(taxesBlock02);
+        taxesBlock02.setMaxSize(3);
+        taxesBlock02.set(new Transaction<AccountTransaction>()
+
+                        .subject(() -> {
+                            AccountTransaction accountTransaction = new AccountTransaction();
+                            accountTransaction.setType(AccountTransaction.Type.TAXES);
+                            return accountTransaction;
+                        })
+
+                        .section("note1", "note2", "date", "amount", "currency") //
+                        .match("^(?<note1>Steueroptimierung) [\\d]{2}\\.[\\d]{2}\\.[\\d]{4} " //
+                                        + "(?<date>[\\d]{2}\\.[\\d]{2}\\.[\\d\\s]+)[\\s]{1,}" //
+                                        + "\\-(?<amount>[\\.,\\d]+)[\\s]{1,}(?<currency>[\\w]{3}).*$") //
+                        .match("^Ref\\.: (?<note2>.*)$") //
+                        .assign((t, v) -> {
+                            t.setDateTime(asDate(stripBlanks(v.get("date"))));
+                            t.setCurrencyCode(asCurrencyCode(v.get("currency")));
+                            t.setAmount(asAmount(v.get("amount")));
+                            t.setNote(v.get("note1") + " | Ref.-Nr.: " + trim(v.get("note2")));
+                        })
+
+                        .wrap(TransactionItem::new));
 
         // @formatter:off
         // Steueroptimierung 02.04.2024 02.04.2024 56,07 EUR
