@@ -298,6 +298,9 @@ public class Messages extends NLS
     public static String ColumnQuoteRangeWidget_Description;
     public static String ColumnQuoteRangeWidget_Option;
     public static String ColumnRealizedCapitalGains;
+    public static String ColumnRealizedCapitalGains_Description;
+    public static String ColumnRealizedCapitalGainsMA_Description;
+    public static String ColumnCapitalGainsGeneric_Description;
     public static String ColumnRebalanceAmount;
     public static String ColumnRebalancingIndicatorAbsoluteThreshold;
     public static String ColumnRebalancingIndicatorBarLength;
@@ -337,6 +340,8 @@ public class Messages extends NLS
     public static String ColumnTTWRORpa;
     public static String ColumnTTWRORpa_Option;
     public static String ColumnUnrealizedCapitalGains;
+    public static String ColumnUnrealizedCapitalGains_Description;
+    public static String ColumnUnrealizedCapitalGainsMA_Description;
     public static String ColumnUpdatedQuote;
     public static String ColumnUpdatedShares;
     public static String ColumnUsedForRebalancing;
@@ -464,6 +469,7 @@ public class Messages extends NLS
     public static String HeatmapOrnamentGeometricMean;
     public static String HeatmapOrnamentStandardDeviation;
     public static String HeatmapOrnamentSum;
+    public static String HelpGroupedAccountsListView;
     public static String HelpURL;
     public static String HoldingsWarningAssetsWithNegativeValuation;
     public static String HoldingsWarningAssetsWithNegativeValuationDetails;
@@ -563,6 +569,10 @@ public class Messages extends NLS
     public static String LabelBiggerSize;
     public static String LabelBlueGrayOrange;
     public static String LabelCapitalGains;
+    public static String LabelCapitalGainsMethod;
+    public static String LabelCapitalGainsMethodFIFO;
+    public static String LabelCapitalGainsMethodMovingAverage;
+    public static String LabelCapitalGainsMethodMovingAverageAbbr;
     public static String LabelCategoryOtherMovements;
     public static String LabelChartDetailChartDevelopment;
     public static String LabelChartDetailChartDevelopmentClosing;
@@ -694,6 +704,7 @@ public class Messages extends NLS
     public static String LabelGreenYellowRed;
     public static String LabelGross;
     public static String LabelGrossNetCalculation;
+    public static String LabelGroupedAccounts;
     public static String LabelHeading;
     public static String LabelHeatmap;
     public static String LabelHeatmapEarnings;
@@ -958,6 +969,7 @@ public class Messages extends NLS
     public static String MenuConvertToOutboundDelivery;
     public static String MenuConvertToSell;
     public static String MenuCreateAccountOrTransaction;
+    public static String MenuCreateAndManageClientFilter;
     public static String MenuCreateColumnConfig;
     public static String MenuCreatePortfolioOrTransaction;
     public static String MenuDashboardColumnWidth;
