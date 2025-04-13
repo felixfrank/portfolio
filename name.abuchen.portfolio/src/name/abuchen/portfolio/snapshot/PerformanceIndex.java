@@ -22,7 +22,7 @@ import name.abuchen.portfolio.Messages;
 import name.abuchen.portfolio.math.Risk.Drawdown;
 import name.abuchen.portfolio.math.Risk.Volatility;
 import name.abuchen.portfolio.model.Account;
-import name.abuchen.portfolio.model.AccountTransaction;
+// import name.abuchen.portfolio.model.AccountTransaction;
 import name.abuchen.portfolio.model.Classification;
 import name.abuchen.portfolio.model.Client;
 import name.abuchen.portfolio.model.Portfolio;
@@ -341,20 +341,20 @@ public class PerformanceIndex
 
         LocalDate intervalStart = interval.getStart();
 
-        for (Account account : getClient().getAccounts())
-            startValue += account.getTransactions() //
-                            .stream() //
-                            .filter(t -> t.getType() == AccountTransaction.Type.DEPOSIT
-                                            || t.getType() == AccountTransaction.Type.REMOVAL)
-                            .filter(t -> !t.getDateTime().toLocalDate().isAfter(intervalStart)) //
-                            .mapToLong(t -> {
-                                if (t.getType() == AccountTransaction.Type.DEPOSIT)
-                                    return convertIfNecessary.applyAsLong(t.getMonetaryAmount(), t.getDateTime());
-                                else if (t.getType() == AccountTransaction.Type.REMOVAL)
-                                    return -convertIfNecessary.applyAsLong(t.getMonetaryAmount(), t.getDateTime());
-                                else
-                                    return 0;
-                            }).sum();
+        // for (Account account : getClient().getAccounts())
+        //     startValue += account.getTransactions() //
+        //                     .stream() //
+        //                     .filter(t -> t.getType() == AccountTransaction.Type.DEPOSIT
+        //                                     || t.getType() == AccountTransaction.Type.REMOVAL)
+        //                     .filter(t -> !t.getDateTime().toLocalDate().isAfter(intervalStart)) //
+        //                     .mapToLong(t -> {
+        //                         if (t.getType() == AccountTransaction.Type.DEPOSIT)
+        //                             return convertIfNecessary.applyAsLong(t.getMonetaryAmount(), t.getDateTime());
+        //                         else if (t.getType() == AccountTransaction.Type.REMOVAL)
+        //                             return -convertIfNecessary.applyAsLong(t.getMonetaryAmount(), t.getDateTime());
+        //                         else
+        //                             return 0;
+        //                     }).sum();
 
         for (Portfolio portfolio : getClient().getPortfolios())
             startValue += portfolio.getTransactions() //
@@ -366,6 +366,21 @@ public class PerformanceIndex
                                 if (t.getType() == PortfolioTransaction.Type.DELIVERY_INBOUND)
                                     return convertIfNecessary.applyAsLong(t.getMonetaryAmount(), t.getDateTime());
                                 else if (t.getType() == PortfolioTransaction.Type.DELIVERY_OUTBOUND)
+                                    return -convertIfNecessary.applyAsLong(t.getMonetaryAmount(), t.getDateTime());
+                                else
+                                    return 0;
+                            }).sum();
+
+        for (Portfolio portfolio : getClient().getPortfolios())
+            startValue += portfolio.getTransactions() //
+                            .stream() //
+                            .filter(t -> t.getType() == PortfolioTransaction.Type.BUY
+                                            || t.getType() == PortfolioTransaction.Type.SELL)
+                            .filter(t -> !t.getDateTime().toLocalDate().isAfter(intervalStart)) //
+                            .mapToLong(t -> {
+                                if (t.getType() == PortfolioTransaction.Type.BUY)
+                                    return convertIfNecessary.applyAsLong(t.getMonetaryAmount(), t.getDateTime());
+                                else if (t.getType() == PortfolioTransaction.Type.SELL)
                                     return -convertIfNecessary.applyAsLong(t.getMonetaryAmount(), t.getDateTime());
                                 else
                                     return 0;
