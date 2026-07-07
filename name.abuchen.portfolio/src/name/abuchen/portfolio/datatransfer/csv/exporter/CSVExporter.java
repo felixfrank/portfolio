@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
+import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 import java.util.Collections;
@@ -28,6 +29,7 @@ import name.abuchen.portfolio.model.Transaction.Unit;
 import name.abuchen.portfolio.money.CurrencyConverter;
 import name.abuchen.portfolio.money.Money;
 import name.abuchen.portfolio.money.Values;
+import name.abuchen.portfolio.snapshot.trades.Trade;
 import name.abuchen.portfolio.util.TextUtil;
 
 /* not thread safe */
@@ -316,6 +318,56 @@ public class CSVExporter
         }
 
         return prices;
+    }
+
+    public void exportOpenTradesIBKR(File file, List<Trade> openTrades) throws IOException
+    {
+        var format = CSVFormat.DEFAULT.builder()
+                        .setDelimiter(',').setQuote('"').setRecordSeparator("\r\n").get(); //$NON-NLS-1$
+
+        try (var printer = new CSVPrinter(
+                        new OutputStreamWriter(new FileOutputStream(file), StandardCharsets.UTF_8), format))
+        {
+            printer.printRecord("Data Discriminator", "Entry ID", "Symbol", "Currency", //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$ //$NON-NLS-4$
+                            "Quantity", "Acquisition Date", "Total Cost", "Editable"); //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$ //$NON-NLS-4$
+
+            for (var trade : openTrades)
+            {
+                Security security = trade.getSecurity();
+                String symbol = security.getTickerSymbol() != null ? security.getTickerSymbol()
+                                : escapeNull(security.getIsin());
+                String currency = escapeNull(security.getCurrencyCode());
+
+                printer.printRecord("Summary", "", symbol, currency, //$NON-NLS-1$ //$NON-NLS-2$
+                                sharesPlain(trade.getShares()), "", "", "N"); //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$
+
+                for (var pair : trade.getTransactions())
+                {
+                    var tx = pair.getTransaction();
+                    if (!tx.getType().isPurchase())
+                        continue;
+
+                    printer.printRecord("Lot", "", "", currency, //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$
+                                    sharesPlain(tx.getShares()),
+                                    tx.getDateTime().toLocalDate().toString(),
+                                    amountPlain(tx.getMonetaryAmount().getAmount()),
+                                    "Y"); //$NON-NLS-1$
+                }
+            }
+        }
+    }
+
+    private String sharesPlain(long shares)
+    {
+        String s = new BigDecimal(shares).movePointLeft(Values.Share.precision())
+                        .stripTrailingZeros().toPlainString();
+        return s.startsWith(".") ? "0" + s : s; //$NON-NLS-1$ //$NON-NLS-2$
+    }
+
+    private String amountPlain(long amount)
+    {
+        String s = new BigDecimal(amount).movePointLeft(Values.Amount.precision()).toPlainString();
+        return s.startsWith(".") ? "0" + s : s; //$NON-NLS-1$ //$NON-NLS-2$
     }
 
     /* package */static String escapeNull(String value)

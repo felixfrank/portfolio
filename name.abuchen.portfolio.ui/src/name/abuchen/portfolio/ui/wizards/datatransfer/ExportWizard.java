@@ -3,6 +3,8 @@ package name.abuchen.portfolio.ui.wizards.datatransfer;
 import java.io.File;
 import java.io.IOException;
 import java.text.MessageFormat;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
 
 import org.eclipse.jface.dialogs.MessageDialog;
@@ -24,6 +26,9 @@ import name.abuchen.portfolio.model.SecurityPrice;
 import name.abuchen.portfolio.money.CurrencyConverter;
 import name.abuchen.portfolio.money.CurrencyConverterImpl;
 import name.abuchen.portfolio.money.ExchangeRateProviderFactory;
+import name.abuchen.portfolio.snapshot.trades.Trade;
+import name.abuchen.portfolio.snapshot.trades.TradeCollector;
+import name.abuchen.portfolio.snapshot.trades.TradeCollectorException;
 import name.abuchen.portfolio.ui.Images;
 import name.abuchen.portfolio.ui.Messages;
 import name.abuchen.portfolio.ui.PortfolioPlugin;
@@ -131,6 +136,27 @@ public class ExportWizard extends Wizard
             else if (exportClass == SecurityPrice.class)
             {
                 new CSVExporter().exportSecurityPrices(converter, file, (Security) exportItem);
+            }
+
+            // open trades (IBKR cost basis)
+            else if (exportClass == Trade.class)
+            {
+                var cv = new CurrencyConverterImpl(factory, client.getBaseCurrency());
+                List<Trade> openTrades = new ArrayList<>();
+                for (var security : client.getSecurities())
+                {
+                    try
+                    {
+                        new TradeCollector(client, cv).collect(security).stream()
+                                        .filter(t -> !t.isClosed())
+                                        .forEach(openTrades::add);
+                    }
+                    catch (TradeCollectorException e)
+                    {
+                        PortfolioPlugin.log(e);
+                    }
+                }
+                new CSVExporter().exportOpenTradesIBKR(file, openTrades);
             }
             else
             {

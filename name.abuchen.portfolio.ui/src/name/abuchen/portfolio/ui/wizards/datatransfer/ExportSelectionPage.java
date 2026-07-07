@@ -30,6 +30,7 @@ import name.abuchen.portfolio.model.Portfolio;
 import name.abuchen.portfolio.model.PortfolioTransaction;
 import name.abuchen.portfolio.model.Security;
 import name.abuchen.portfolio.model.SecurityPrice;
+import name.abuchen.portfolio.snapshot.trades.Trade;
 import name.abuchen.portfolio.ui.Messages;
 import name.abuchen.portfolio.ui.util.LogoManager;
 import name.abuchen.portfolio.ui.util.viewers.CopyPasteSupport;
@@ -149,7 +150,7 @@ public class ExportSelectionPage extends AbstractWizardPage
         public Object[] getElements(Object inputElement)
         {
             return new Class[] { AccountTransaction.class, PortfolioTransaction.class, Security.class,
-                            SecurityPrice.class };
+                            SecurityPrice.class, Trade.class };
         }
 
         @Override
@@ -166,6 +167,8 @@ public class ExportSelectionPage extends AbstractWizardPage
                                     Messages.ExportWizardMergedSecurityPrices, Messages.ExportWizardVINISApp };
                 else if (parentElement == SecurityPrice.class)
                     return client.getSecurities().stream().sorted(new Security.ByName()).toArray();
+                else if (parentElement == Trade.class)
+                    return new String[] { Messages.ExportWizardIBKRCostBasis };
             }
 
             return null;
@@ -215,6 +218,8 @@ public class ExportSelectionPage extends AbstractWizardPage
                 return Messages.ExportWizardSecurities;
             else if (element == SecurityPrice.class)
                 return Messages.ExportWizardHistoricalQuotes;
+            else if (element == Trade.class)
+                return Messages.ExportWizardOpenTrades;
             else if (element instanceof String s)
                 return s;
             else
