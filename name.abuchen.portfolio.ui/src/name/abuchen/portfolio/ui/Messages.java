@@ -469,6 +469,12 @@ public class Messages extends NLS
     public static String FollowUpWidget_Option_SortingByDateDescending;
     public static String ForceClearPersistedStateDialogTitle;
     public static String ForceClearPersistedStateMessage;
+    public static String GainsColumnAccumulated;
+    public static String GainsColumnCost;
+    public static String GainsColumnProceeds;
+    public static String GainsColumnSaleDate;
+    public static String GainsColumnSecurity;
+    public static String GainsColumnTaxableGain;
     public static String GroupLabelAttributes;
     public static String GroupLabelDataQuality;
     public static String GroupLabelDividends;
@@ -714,6 +720,7 @@ public class Messages extends NLS
     public static String LabelExport;
     public static String LabelFees;
     public static String LabelFeesAccumulated;
+    public static String LabelFinalizeYear;
     public static String LabelFIREAchieved;
     public static String LabelFIREClickToSet;
     public static String LabelFIRECurrentNetWorth;
@@ -731,6 +738,7 @@ public class Messages extends NLS
     public static String LabelGreenWhiteRed;
     public static String LabelGreenYellowRed;
     public static String LabelGross;
+    public static String LabelGermanTaxGains;
     public static String LabelGrossNetCalculation;
     public static String LabelGroupedAccounts;
     public static String LabelHeading;
@@ -862,6 +870,7 @@ public class Messages extends NLS
     public static String LabelQuoteFeedConfiguration;
     public static String LabelQuoteFeedProvider;
     public static String LabelRatio;
+    public static String LabelRecompute;
     public static String LabelRefresh;
     public static String LabelRemoveDividends;
     public static String LabelRemoveLogo;
@@ -925,6 +934,7 @@ public class Messages extends NLS
     public static String LabelSuffix_PreTax;
     public static String LabelTaxesAndFeesIncluded;
     public static String LabelTaxesAndFeesNotIncluded;
+    public static String LabelTaxesMenu;
     public static String LabelTaxonomies;
     public static String LabelTaxonomyTemplates;
     public static String LabelTemplate;
@@ -981,6 +991,9 @@ public class Messages extends NLS
     public static String LabelViewTaxonomyDefinition;
     public static String LabelViewTreeMap;
     public static String LabelVolatility;
+    public static String LabelVorabpauschale;
+    public static String LabelVorabpauschaleBasiszins;
+    public static String LabelVorabpauschaleYear;
     public static String LabelWatchlist;
     public static String LabelWeeksAgo;
     public static String LabelWithoutClassification;
@@ -1504,6 +1517,12 @@ public class Messages extends NLS
     public static String ValueColorSchemeBlueOrange;
     public static String ValueColorSchemeStandard;
     public static String ValueColorSchemeVividContrast;
+    public static String VorabpauschaleColumnDistributions;
+    public static String VorabpauschaleColumnGrossBasisertrag;
+    public static String VorabpauschaleColumnSecurity;
+    public static String VorabpauschaleColumnTaxable;
+    public static String VorabpauschaleColumnVorabpauschale;
+    public static String VorabpauschaleColumnYearStartValue;
     public static String WatchlistDelete;
     public static String WatchlistEditDialog;
     public static String WatchlistEditDialogMsg;
