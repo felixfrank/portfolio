@@ -14,6 +14,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.math.BigDecimal;
+import java.text.MessageFormat;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -839,11 +840,19 @@ import name.abuchen.portfolio.money.Money;
 
     private void loadVorabpauschaleEntries(PClient newClient, Client client, Lookup lookup)
     {
+        if (newClient.getVorabpauschaleEntriesCount() == 0)
+            return;
+
         for (PVorabpauschaleEntry newEntry : newClient.getVorabpauschaleEntriesList())
         {
             Security security = lookup.getSecurity(newEntry.getSecurity());
             if (security == null)
+            {
+                PortfolioLog.warning(MessageFormat.format(
+                                "Skipping Vorabpauschale entry for unknown security UUID ''{0}'' (year {1})",
+                                newEntry.getSecurity(), newEntry.getYear()));
                 continue; // skip entries whose security no longer exists
+            }
 
             String currency = newEntry.getCurrencyCode();
             VorabpauschaleEntry entry = new VorabpauschaleEntry(security, newEntry.getYear(),
@@ -1451,12 +1460,12 @@ import name.abuchen.portfolio.money.Money;
             newEntry.setYear(entry.getYear());
             newEntry.setBasiszins(entry.getBasiszins().toPlainString());
             newEntry.setTeilfreistellungFactor(entry.getTeilfreistellungFactor().toPlainString());
+            newEntry.setCurrencyCode(entry.getVorabpauschale().getCurrencyCode());
             newEntry.setYearStartValue(entry.getYearStartValue().getAmount());
             newEntry.setDistributions(entry.getDistributions().getAmount());
             newEntry.setCappedBasisertrag(entry.getCappedBasisertrag().getAmount());
             newEntry.setVorabpauschale(entry.getVorabpauschale().getAmount());
             newEntry.setTaxable(entry.getTaxable().getAmount());
-            newEntry.setCurrencyCode(entry.getVorabpauschale().getCurrencyCode());
             newEntry.setFinalizedAt(asUpdatedAtTimestamp(entry.getFinalizedAt()));
             newClient.addVorabpauschaleEntries(newEntry.build());
         }
