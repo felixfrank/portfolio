@@ -1,0 +1,133 @@
+package name.abuchen.portfolio.snapshot.vorabpauschale;
+
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
+
+import java.math.BigDecimal;
+import java.time.Instant;
+
+import org.junit.Test;
+
+import name.abuchen.portfolio.junit.PortfolioBuilder;
+import name.abuchen.portfolio.junit.SecurityBuilder;
+import name.abuchen.portfolio.junit.TestCurrencyConverter;
+import name.abuchen.portfolio.model.Client;
+import name.abuchen.portfolio.model.Security;
+import name.abuchen.portfolio.model.VorabpauschaleEntry;
+import name.abuchen.portfolio.money.CurrencyUnit;
+import name.abuchen.portfolio.money.Money;
+import name.abuchen.portfolio.money.Values;
+
+@SuppressWarnings("nls")
+public class GermanTaxGainCalculatorTest
+{
+    private static final long SHARE = Values.Share.factor();
+    private final TestCurrencyConverter eur = new TestCurrencyConverter(CurrencyUnit.EUR);
+
+    private VorabpauschaleEntry ledger(Security security, int year, long vorabCents)
+    {
+        return new VorabpauschaleEntry(security, year, new BigDecimal("2.53"), BigDecimal.ONE,
+                        Money.of("EUR", 10_000_00), Money.of("EUR", 0), Money.of("EUR", vorabCents),
+                        Money.of("EUR", vorabCents), Money.of("EUR", vorabCents),
+                        Instant.parse((year + 1) + "-01-02T00:00:00Z"));
+    }
+
+    @Test
+    public void testAccumulatedVorabpauschaleRaisesBasis()
+    {
+        Client client = new Client();
+        Security security = new SecurityBuilder("EUR").addTo(client);
+        new PortfolioBuilder() //
+                        .buy(security, "2023-06-01", 100 * SHARE, 10_000_00) //
+                        .sell(security, "2025-06-01", 100 * SHARE, 13_000_00) //
+                        .addTo(client);
+        client.addVorabpauschaleEntry(ledger(security, 2024, 177_10));
+
+        GermanTaxGainResult r = GermanTaxGainCalculator.compute(client, 2025, s -> BigDecimal.ONE, eur);
+
+        assertThat(r.getSales().size(), is(1));
+        SaleGain sale = r.getSales().get(0);
+        assertThat(sale.getAccumulatedVorabpauschale(), is(Money.of("EUR", 177_10)));
+        assertThat(sale.getTaxableGain(), is(Money.of("EUR", 2_822_90)));
+        assertThat(r.getTotalTaxableGain(), is(Money.of("EUR", 2_822_90)));
+    }
+
+    @Test
+    public void testFifoConsumesOldestLotWithItsAccumulation()
+    {
+        Client client = new Client();
+        Security security = new SecurityBuilder("EUR").addTo(client);
+        new PortfolioBuilder() //
+                        .buy(security, "2022-03-01", 100 * SHARE, 10_000_00) //
+                        .buy(security, "2023-06-01", 100 * SHARE, 12_000_00) //
+                        .sell(security, "2025-06-01", 100 * SHARE, 15_000_00) //
+                        .addTo(client);
+        client.addVorabpauschaleEntry(ledger(security, 2022, 100_00));
+        client.addVorabpauschaleEntry(ledger(security, 2023, 200_00));
+        client.addVorabpauschaleEntry(ledger(security, 2024, 300_00));
+
+        GermanTaxGainResult r = GermanTaxGainCalculator.compute(client, 2025, s -> BigDecimal.ONE, eur);
+
+        SaleGain sale = r.getSales().get(0);
+        assertThat(sale.getShares(), is(100 * SHARE));
+        assertThat(sale.getAccumulatedVorabpauschale(), is(Money.of("EUR", 376_32)));
+        assertThat(sale.getTaxableGain(), is(Money.of("EUR", 4_623_68)));
+    }
+
+    @Test
+    public void testSameYearBuyAndSellHasNoAccumulation()
+    {
+        Client client = new Client();
+        Security security = new SecurityBuilder("EUR").addTo(client);
+        new PortfolioBuilder() //
+                        .buy(security, "2025-02-01", 50 * SHARE, 5_000_00) //
+                        .sell(security, "2025-09-01", 50 * SHARE, 5_500_00) //
+                        .addTo(client);
+
+        GermanTaxGainResult r = GermanTaxGainCalculator.compute(client, 2025, s -> BigDecimal.ONE, eur);
+
+        SaleGain sale = r.getSales().get(0);
+        assertThat(sale.getAccumulatedVorabpauschale(), is(Money.of("EUR", 0)));
+        assertThat(sale.getTaxableGain(), is(Money.of("EUR", 500_00)));
+    }
+
+    @Test
+    public void testTeilfreistellungAppliedToGain()
+    {
+        Client client = new Client();
+        Security security = new SecurityBuilder("EUR").addTo(client);
+        new PortfolioBuilder() //
+                        .buy(security, "2023-06-01", 100 * SHARE, 10_000_00) //
+                        .sell(security, "2025-06-01", 100 * SHARE, 13_000_00) //
+                        .addTo(client);
+        client.addVorabpauschaleEntry(ledger(security, 2024, 177_10));
+
+        GermanTaxGainResult r = GermanTaxGainCalculator.compute(client, 2025, s -> new BigDecimal("0.70"), eur);
+
+        // 2822.90 * 0.70 = 1976.03
+        assertThat(r.getSales().get(0).getTaxableGain(), is(Money.of("EUR", 1_976_03)));
+    }
+
+    @Test
+    public void testLossWithExemptionAndYearFiltering()
+    {
+        Client client = new Client();
+        Security a = new SecurityBuilder("EUR").addTo(client);
+        Security b = new SecurityBuilder("EUR").addTo(client);
+        new PortfolioBuilder() //
+                        .buy(a, "2023-06-01", 100 * SHARE, 10_000_00) //
+                        .sell(a, "2025-06-01", 100 * SHARE, 8_000_00) //
+                        .buy(b, "2022-01-01", 10 * SHARE, 1_000_00) //
+                        .sell(b, "2024-01-01", 10 * SHARE, 1_500_00) // different year -> excluded
+                        .addTo(client);
+
+        GermanTaxGainResult r = GermanTaxGainCalculator.compute(client, 2025, s -> new BigDecimal("0.70"), eur);
+
+        assertThat(r.getSales().size(), is(1));
+        SaleGain sale = r.getSales().get(0);
+        assertThat(sale.getSecurity(), is(a));
+        // -2000.00 * 0.70 = -1400.00
+        assertThat(sale.getTaxableGain(), is(Money.of("EUR", -1_400_00)));
+        assertThat(r.getTotalTaxableGain(), is(Money.of("EUR", -1_400_00)));
+    }
+}
