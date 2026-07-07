@@ -80,4 +80,22 @@ public class VorabpauschaleCalculatorTest
         assertThat(r.getVorabpauschale(), is(Money.of("EUR", 0)));
         assertThat(r.getTaxable(), is(Money.of("EUR", 0)));
     }
+
+    @Test
+    public void testDownYearCapsToZero()
+    {
+        Client client = new Client();
+        Security security = new SecurityBuilder("EUR") //
+                        .addPrice("2024-01-01", Values.Quote.factorize(100.00)) //
+                        .addPrice("2024-12-31", Values.Quote.factorize(90.00)) //
+                        .addTo(client);
+        new PortfolioBuilder().buy(security, "2023-06-01", 100 * SHARE, 10_000_00).addTo(client);
+
+        VorabpauschaleResult r = VorabpauschaleCalculator.compute(client, security, 2024,
+                        new BigDecimal("2.53"), BigDecimal.ONE, eur);
+
+        // cap = max(0, 9000 - 10000 + 0) = 0
+        assertThat(r.getCappedBasisertrag(), is(Money.of("EUR", 0)));
+        assertThat(r.getVorabpauschale(), is(Money.of("EUR", 0)));
+    }
 }
