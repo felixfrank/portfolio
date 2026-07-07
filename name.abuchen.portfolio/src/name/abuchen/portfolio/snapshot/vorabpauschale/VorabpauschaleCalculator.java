@@ -2,6 +2,7 @@ package name.abuchen.portfolio.snapshot.vorabpauschale;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.text.MessageFormat;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
@@ -10,7 +11,6 @@ import name.abuchen.portfolio.model.AccountTransaction;
 import name.abuchen.portfolio.model.Client;
 import name.abuchen.portfolio.model.Security;
 import name.abuchen.portfolio.model.SecurityPrice;
-import name.abuchen.portfolio.model.TransactionPair;
 import name.abuchen.portfolio.money.CurrencyConverter;
 import name.abuchen.portfolio.money.Money;
 import name.abuchen.portfolio.money.Values;
@@ -42,7 +42,7 @@ public final class VorabpauschaleCalculator
         if (lots.isEmpty() || totalShares == 0)
             return zero(security, year, eur, warnings);
 
-        var perShareStart = perShareInTermCurrency(security, yearStart, converter, warnings, "start");
+        var perShareStart = perShareInTermCurrency(security, yearStart, converter, warnings, true);
         if (perShareStart == null)
             return zero(security, year, eur, warnings);
 
@@ -84,7 +84,7 @@ public final class VorabpauschaleCalculator
         var distributionsCents = BigDecimal.valueOf(distributions(client, security, year, converter).getAmount());
 
         BigDecimal capCents = null;
-        var perShareEnd = perShareInTermCurrency(security, yearEnd, converter, warnings, "end");
+        var perShareEnd = perShareInTermCurrency(security, yearEnd, converter, warnings, false);
         if (perShareEnd != null)
         {
             var totalSharesDec = BigDecimal.valueOf(totalShares).movePointLeft(Values.Share.precision());
@@ -96,29 +96,60 @@ public final class VorabpauschaleCalculator
         var vorabCents = cappedCents.subtract(distributionsCents).max(BigDecimal.ZERO);
         var taxableCents = vorabCents.multiply(teilfreistellungFactor);
 
-        List<LotContribution> contributions = new ArrayList<>();
-        for (int i = 0; i < lots.size(); i++)
-        {
-            var share = grossCents.signum() == 0 ? BigDecimal.ZERO
-                            : lotBasisertrag.get(i).divide(grossCents, 12, RoundingMode.HALF_UP);
-            var contribution = money(eur, vorabCents.multiply(share));
-            contributions.add(new LotContribution(lots.get(i).getPurchase().getDateTime().toLocalDate(),
-                            lots.get(i).getShares(), money(eur, lotBaseValue.get(i)), lotTimeFactor.get(i),
-                            money(eur, lotBasisertrag.get(i)), contribution));
-        }
+        var vorabpauschale = money(eur, vorabCents);
+        var contributions = buildContributions(eur, lots, lotBaseValue, lotTimeFactor, lotBasisertrag, grossCents,
+                        vorabCents, vorabpauschale.getAmount());
 
         return new VorabpauschaleResult(security, year, money(eur, yearStartValueCents),
                         money(eur, distributionsCents), money(eur, grossCents), money(eur, cappedCents),
-                        money(eur, vorabCents), money(eur, taxableCents), contributions, warnings);
+                        vorabpauschale, money(eur, taxableCents), contributions, warnings);
+    }
+
+    /**
+     * Allocates the (post-cap, post-distribution) Vorabpauschale across the lots
+     * proportionally to each lot's Basisertrag. To avoid a rounding drift, the
+     * first N-1 lots are rounded independently and the last lot receives the
+     * exact remainder so that the per-lot contributions always sum to
+     * {@code vorabpauschaleAmount}.
+     */
+    private static List<LotContribution> buildContributions(String currency, List<OpenLot> lots,
+                    List<BigDecimal> lotBaseValue, List<BigDecimal> lotTimeFactor, List<BigDecimal> lotBasisertrag,
+                    BigDecimal grossCents, BigDecimal vorabCents, long vorabpauschaleAmount)
+    {
+        List<LotContribution> contributions = new ArrayList<>();
+        long allocated = 0;
+        for (int i = 0; i < lots.size(); i++)
+        {
+            long contributionAmount;
+            if (i < lots.size() - 1)
+            {
+                var share = grossCents.signum() == 0 ? BigDecimal.ZERO
+                                : lotBasisertrag.get(i).divide(grossCents, 12, RoundingMode.HALF_UP);
+                contributionAmount = money(currency, vorabCents.multiply(share)).getAmount();
+                allocated += contributionAmount;
+            }
+            else
+            {
+                contributionAmount = vorabpauschaleAmount - allocated;
+            }
+
+            contributions.add(new LotContribution(lots.get(i).getPurchase().getDateTime().toLocalDate(),
+                            lots.get(i).getShares(), money(currency, lotBaseValue.get(i)), lotTimeFactor.get(i),
+                            money(currency, lotBasisertrag.get(i)), Money.of(currency, contributionAmount)));
+        }
+        return contributions;
     }
 
     private static Money perShareInTermCurrency(Security security, LocalDate date, CurrencyConverter converter,
-                    List<String> warnings, String which)
+                    List<String> warnings, boolean isYearStart)
     {
+        // getSecurityPrice returns a 0-value price when no data exists
         SecurityPrice price = security.getSecurityPrice(date);
-        if (price == null || price.getValue() == 0)
+        if (price.getValue() == 0)
         {
-            warnings.add("Missing year-" + which + " price for " + security.getName());
+            warnings.add(MessageFormat.format(
+                            isYearStart ? "Missing year-start price for {0}" : "Missing year-end price for {0}",
+                            security.getName()));
             return null;
         }
         long cents = BigDecimal.valueOf(price.getValue()).movePointLeft(Values.Quote.precisionDeltaToMoney())
