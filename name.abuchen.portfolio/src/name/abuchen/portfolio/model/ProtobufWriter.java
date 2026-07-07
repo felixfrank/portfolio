@@ -52,6 +52,7 @@ import name.abuchen.portfolio.model.proto.v1.PSettings;
 import name.abuchen.portfolio.model.proto.v1.PTaxonomy;
 import name.abuchen.portfolio.model.proto.v1.PTransaction;
 import name.abuchen.portfolio.model.proto.v1.PTransactionUnit;
+import name.abuchen.portfolio.model.proto.v1.PVorabpauschaleEntry;
 import name.abuchen.portfolio.model.proto.v1.PWatchlist;
 import name.abuchen.portfolio.money.Money;
 
@@ -135,6 +136,7 @@ import name.abuchen.portfolio.money.Money;
         loadDashboards(newClient, client);
         loadWatchlists(newClient, client, lookup);
         loadInvestmentPlans(newClient, client, lookup);
+        loadVorabpauschaleEntries(newClient, client, lookup);
         loadExtensions(newClient, client);
 
         client.getSaveFlags().add(SaveFlag.BINARY);
@@ -835,6 +837,28 @@ import name.abuchen.portfolio.money.Money;
         }
     }
 
+    private void loadVorabpauschaleEntries(PClient newClient, Client client, Lookup lookup)
+    {
+        for (PVorabpauschaleEntry newEntry : newClient.getVorabpauschaleEntriesList())
+        {
+            Security security = lookup.getSecurity(newEntry.getSecurity());
+            if (security == null)
+                continue; // skip entries whose security no longer exists
+
+            String currency = newEntry.getCurrencyCode();
+            VorabpauschaleEntry entry = new VorabpauschaleEntry(security, newEntry.getYear(),
+                            new BigDecimal(newEntry.getBasiszins()),
+                            new BigDecimal(newEntry.getTeilfreistellungFactor()),
+                            Money.of(currency, newEntry.getYearStartValue()),
+                            Money.of(currency, newEntry.getDistributions()),
+                            Money.of(currency, newEntry.getCappedBasisertrag()),
+                            Money.of(currency, newEntry.getVorabpauschale()),
+                            Money.of(currency, newEntry.getTaxable()),
+                            fromUpdatedAtTimestamp(newEntry.getFinalizedAt()));
+            client.addVorabpauschaleEntry(entry);
+        }
+    }
+
     private void loadExtensions(PClient newClient, Client client)
     {
         // Load extension data from the Any fields
@@ -874,6 +898,7 @@ import name.abuchen.portfolio.money.Money;
         saveDashboards(client, newClient);
         saveWatchlists(client, newClient);
         saveInvestmentPlans(client, newClient);
+        saveVorabpauschaleEntries(client, newClient);
         saveExtensions(client, newClient);
 
         // write signature
@@ -1415,6 +1440,26 @@ import name.abuchen.portfolio.money.Money;
 
             newClient.addPlans(newPlan);
         });
+    }
+
+    private void saveVorabpauschaleEntries(Client client, PClient.Builder newClient)
+    {
+        for (VorabpauschaleEntry entry : client.getVorabpauschaleEntries())
+        {
+            PVorabpauschaleEntry.Builder newEntry = PVorabpauschaleEntry.newBuilder();
+            newEntry.setSecurity(entry.getSecurity().getUUID());
+            newEntry.setYear(entry.getYear());
+            newEntry.setBasiszins(entry.getBasiszins().toPlainString());
+            newEntry.setTeilfreistellungFactor(entry.getTeilfreistellungFactor().toPlainString());
+            newEntry.setYearStartValue(entry.getYearStartValue().getAmount());
+            newEntry.setDistributions(entry.getDistributions().getAmount());
+            newEntry.setCappedBasisertrag(entry.getCappedBasisertrag().getAmount());
+            newEntry.setVorabpauschale(entry.getVorabpauschale().getAmount());
+            newEntry.setTaxable(entry.getTaxable().getAmount());
+            newEntry.setCurrencyCode(entry.getVorabpauschale().getCurrencyCode());
+            newEntry.setFinalizedAt(asUpdatedAtTimestamp(entry.getFinalizedAt()));
+            newClient.addVorabpauschaleEntries(newEntry.build());
+        }
     }
 
     private void saveExtensions(Client client, PClient.Builder newClient)
