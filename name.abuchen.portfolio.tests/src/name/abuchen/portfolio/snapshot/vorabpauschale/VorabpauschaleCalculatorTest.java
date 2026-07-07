@@ -41,4 +41,22 @@ public class VorabpauschaleCalculatorTest
         assertThat(r.getTaxable(), is(Money.of("EUR", 177_10)));
         assertThat(r.getLots().size(), is(1));
     }
+
+    @Test
+    public void testMidYearPurchaseReducedByTwelfths()
+    {
+        Client client = new Client();
+        Security security = new SecurityBuilder("EUR") //
+                        .addPrice("2024-01-01", Values.Quote.factorize(100.00)) //
+                        .addPrice("2024-12-31", Values.Quote.factorize(130.00)) //
+                        .addTo(client);
+        new PortfolioBuilder().buy(security, "2024-03-10", 100 * SHARE, 10_000_00).addTo(client);
+
+        VorabpauschaleResult r = VorabpauschaleCalculator.compute(client, security, 2024,
+                        new BigDecimal("2.53"), BigDecimal.ONE, eur);
+
+        // 177.10 * 10/12 = 147.58 (March -> (13-3)/12)
+        assertThat(r.getGrossBasisertrag(), is(Money.of("EUR", 147_58)));
+        assertThat(r.getVorabpauschale(), is(Money.of("EUR", 147_58)));
+    }
 }
