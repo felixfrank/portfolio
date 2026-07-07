@@ -200,24 +200,21 @@ message PVorabpauschaleEntry {
   repeated PVorabpauschaleEntry vorabpauschaleEntries = 13;
 ```
 
-- [ ] **Step 3: Regenerate the protobuf Java classes.** local-dev skips generation, so use the DEFAULT profile for the core module only:
+- [ ] **Step 3: Regenerate the protobuf Java classes.** local-dev skips generation by default, but you can re-enable just the protoc plugin while still using local-dev's cached target platform by overriding the phase property. This EXACT command was verified to work offline in this environment (it produced a clean no-op diff on the unmodified proto):
 
 ```bash
-mvn -f portfolio-app/pom.xml generate-sources -pl :name.abuchen.portfolio -am
+export MAVEN_OPTS="-Xmx4g"
+mvn -f portfolio-app/pom.xml generate-sources -Plocal-dev -Dprotobuf.execution.phase=generate-sources \
+  -pl :portfolio-target-definition,:name.abuchen.portfolio.pdfbox1,:name.abuchen.portfolio.pdfbox3,:name.abuchen.portfolio -am -amd -o
 ```
-Expected: the plugin runs protoc and writes `PVorabpauschaleEntry.java`, `PVorabpauschaleEntryOrBuilder.java`, and regenerated `PClient.java`/`PClientOrBuilder.java` under `name.abuchen.portfolio/protos/name/abuchen/portfolio/model/proto/v1/`.
+Expected: `BUILD SUCCESS`, and the plugin log shows `Processing (java): client.proto`. It writes `PVorabpauschaleEntry.java`, `PVorabpauschaleEntryOrBuilder.java`, and regenerated `PClient.java`/`PClientOrBuilder.java` under `name.abuchen.portfolio/protos/name/abuchen/portfolio/model/proto/v1/`.
 
 Verify:
 ```bash
 ls name.abuchen.portfolio/protos/name/abuchen/portfolio/model/proto/v1/PVorabpauschaleEntry*.java
+git status --porcelain name.abuchen.portfolio/protos | head
 ```
-Expected: both files exist.
-
-**If the default-profile build cannot run offline** (target-platform/network resolution failure): the protoc-jar plugin itself only needs the protoc artifact, not the Eclipse target platform. Try invoking just the plugin goal for the core module. Inspect the exact goal/execution id first:
-```bash
-grep -n "protoc-jar-maven-plugin\|<goal>\|<id>" name.abuchen.portfolio/pom.xml
-```
-Then run that goal directly (typically `mvn -f portfolio-app/pom.xml protobuf:run` or `com.github.os72:protoc-jar-maven-plugin:run` — use the id/goal you found) on `-pl :name.abuchen.portfolio`. If you still cannot regenerate in this environment, STOP and report BLOCKED with the exact error — do NOT hand-write the generated classes.
+Expected: both `PVorabpauschaleEntry*.java` files exist, and `git status` shows the new/modified generated files. If regeneration fails for an environment reason, STOP and report BLOCKED with the exact error — do NOT hand-write the generated classes.
 
 - [ ] **Step 4: Commit the proto change and regenerated sources together**
 
