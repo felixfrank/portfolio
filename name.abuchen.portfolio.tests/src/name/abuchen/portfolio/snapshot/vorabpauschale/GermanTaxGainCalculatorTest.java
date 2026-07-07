@@ -75,6 +75,28 @@ public class GermanTaxGainCalculatorTest
     }
 
     @Test
+    public void testPartialSaleSpansTwoLots()
+    {
+        Client client = new Client();
+        Security security = new SecurityBuilder("EUR").addTo(client);
+        new PortfolioBuilder() //
+                        .buy(security, "2023-01-01", 60 * SHARE, 6_000_00) //
+                        .buy(security, "2024-01-01", 40 * SHARE, 5_000_00) //
+                        .sell(security, "2025-06-01", 80 * SHARE, 10_000_00) //
+                        .addTo(client);
+        // no ledger entries -> isolate the FIFO proceeds/cost split
+        GermanTaxGainResult r = GermanTaxGainCalculator.compute(client, 2025, s -> BigDecimal.ONE, eur);
+
+        SaleGain sale = r.getSales().get(0);
+        assertThat(sale.getLots().size(), is(2));           // lot1 fully (60), lot2 partially (20)
+        assertThat(sale.getShares(), is(80 * SHARE));
+        assertThat(sale.getProceeds(), is(Money.of("EUR", 10_000_00)));
+        assertThat(sale.getCost(), is(Money.of("EUR", 8_500_00)));   // 6000 + (5000*20/40)=2500
+        assertThat(sale.getAccumulatedVorabpauschale(), is(Money.of("EUR", 0)));
+        assertThat(sale.getTaxableGain(), is(Money.of("EUR", 1_500_00))); // (7500-6000) + (2500-2500)
+    }
+
+    @Test
     public void testSameYearBuyAndSellHasNoAccumulation()
     {
         Client client = new Client();

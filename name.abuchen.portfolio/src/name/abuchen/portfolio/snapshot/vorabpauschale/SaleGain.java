@@ -17,11 +17,12 @@ public final class SaleGain
     private final Money proceeds;
     private final Money cost;
     private final Money accumulatedVorabpauschale;
+    private final Money gainBeforeExemption;
     private final Money taxableGain;
     private final List<LotGain> lots;
 
     public SaleGain(Security security, LocalDate saleDate, long shares, Money proceeds, Money cost,
-                    Money accumulatedVorabpauschale, Money taxableGain, List<LotGain> lots)
+                    Money accumulatedVorabpauschale, Money gainBeforeExemption, Money taxableGain, List<LotGain> lots)
     {
         this.security = security;
         this.saleDate = saleDate;
@@ -29,6 +30,7 @@ public final class SaleGain
         this.proceeds = proceeds;
         this.cost = cost;
         this.accumulatedVorabpauschale = accumulatedVorabpauschale;
+        this.gainBeforeExemption = gainBeforeExemption;
         this.taxableGain = taxableGain;
         this.lots = Collections.unmodifiableList(new ArrayList<>(lots));
     }
@@ -39,6 +41,7 @@ public final class SaleGain
     public Money getProceeds() { return proceeds; }
     public Money getCost() { return cost; }
     public Money getAccumulatedVorabpauschale() { return accumulatedVorabpauschale; }
+    public Money getGainBeforeExemption() { return gainBeforeExemption; }
     public Money getTaxableGain() { return taxableGain; }
     public List<LotGain> getLots() { return lots; }
 }

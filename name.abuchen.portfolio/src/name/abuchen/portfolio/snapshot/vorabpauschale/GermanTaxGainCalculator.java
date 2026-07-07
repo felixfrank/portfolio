@@ -94,7 +94,9 @@ public final class GermanTaxGainCalculator
         if (txs.isEmpty())
             return Collections.emptyList();
 
-        // ledger vorabpauschale (term-currency cents) per year for this security
+        // ledger vorabpauschale (cents) per year for this security; ledger
+        // amounts are always stored in the client base currency (EUR), the same
+        // as the converter's term currency, so no conversion is needed here
         Map<Integer, Long> ledgerByYear = new HashMap<>();
         for (var e : client.getVorabpauschaleEntries())
         {
@@ -137,10 +139,11 @@ public final class GermanTaxGainCalculator
                     break;
                 }
                 case TRANSFER_IN, TRANSFER_OUT:
-                    // investor-level no-op, same as OpenLotsResolver
+                    // investor-level no-op; transfers between the investor's own
+                    // portfolios do not change the holding
                     break;
                 default:
-                    break;
+                    throw new UnsupportedOperationException(tx.getType().name());
             }
         }
 
@@ -204,7 +207,9 @@ public final class GermanTaxGainCalculator
             // fraction of this lot consumed
             long costTaken = fraction(lot.costCents, take, lot.remainingShares);
             long accumTaken = fraction(lot.accumulatedCents, take, lot.remainingShares);
-            // fraction of the sale proceeds attributed to these shares
+            // fraction of the sale proceeds attributed to these shares; each lot
+            // gets its own independently rounded share, so on multi-lot sales the
+            // summed proceeds may differ from the transaction total by a cent
             long proceedsTaken = fraction(proceedsCents, take, totalShares);
 
             if (inTargetYear)
@@ -236,10 +241,12 @@ public final class GermanTaxGainCalculator
             long proceeds = sum(lotGains, LotGain::getProceeds);
             long cost = sum(lotGains, LotGain::getCost);
             long accum = sum(lotGains, LotGain::getAccumulatedVorabpauschale);
+            long gainBefore = sum(lotGains, LotGain::getGainBeforeExemption);
             long taxable = sum(lotGains, LotGain::getTaxableGain);
             result.add(new SaleGain(security, sale.getDateTime().toLocalDate(), shares,
                             Money.of(termCurrency, proceeds), Money.of(termCurrency, cost),
-                            Money.of(termCurrency, accum), Money.of(termCurrency, taxable), lotGains));
+                            Money.of(termCurrency, accum), Money.of(termCurrency, gainBefore),
+                            Money.of(termCurrency, taxable), lotGains));
         }
     }
 
