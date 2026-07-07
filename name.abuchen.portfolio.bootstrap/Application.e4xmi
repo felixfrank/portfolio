@@ -58,6 +58,10 @@
           <children xsi:type="menu:HandledMenuItem" xmi:id="_AR9yIOIWEe6pEIPYaDGzWA" elementId="name.abuchen.portfolio.ui.menu.file.restoresourceattribute" label="%command.fix.restoresourceattribute" command="_FunoEOIWEe6pEIPYaDGzWA"/>
           <children xsi:type="menu:HandledMenuItem" xmi:id="_CreateSingleSecurityDebugFileMenuItem" elementId="name.abuchen.portfolio.ui.menu.tools.createSingleSecurityDebugFile" label="%command.tools.createSingleSecurityDebugFile.name" command="_CreateSingleSecurityDebugFileCommand"/>
         </children>
+        <children xsi:type="menu:Menu" xmi:id="_TaxesMenu" elementId="name.abuchen.portfolio.ui.menu.taxes" label="%command.taxes.name">
+          <children xsi:type="menu:HandledMenuItem" xmi:id="_VorabpauschaleMenuItem" elementId="name.abuchen.portfolio.ui.menu.taxes.vorabpauschale" label="%command.vorabpauschale.name" command="_VorabpauschaleCommand"/>
+          <children xsi:type="menu:HandledMenuItem" xmi:id="_GermanTaxGainsMenuItem" elementId="name.abuchen.portfolio.ui.menu.taxes.germanTaxGains" label="%command.germanTaxGains.name" command="_GermanTaxGainsCommand"/>
+        </children>
         <children xsi:type="menu:MenuSeparator" xmi:id="_O_UqkBfWEeOders_POVQHQ" elementId="name.abuchen.portfolio.ui.menuseparator.1"/>
         <children xsi:type="menu:Menu" xmi:id="_mF9JAEYQEeSRXYVe298mXg" elementId="name.abuchen.portfolio.ui.menu.file.import" label="%command.import.name" iconURI="platform:/plugin/name.abuchen.portfolio.ui/icons/import_file.png">
           <children xsi:type="menu:HandledMenuItem" xmi:id="_tHcwMI50Eeei6L14_E-zxg" elementId="name.abuchen.portfolio.ui.menu.file.import.PDFassistant" label="%command.import.pdf.import-pdf" tooltip="" mnemonics="" command="_pgC00EYREeSRXYVe298mXg"/>
@@ -222,6 +226,8 @@
   <handlers xmi:id="_aeDVIEzWEfCcpO9Ays2KhA" elementId="name.abuchen.portfolio.ui.handlers.tools.migratePortfolioReportHandler" contributionURI="bundleclass://name.abuchen.portfolio.ui/name.abuchen.portfolio.ui.handlers.tools.MigratePortfolioReportHandler" command="_gfBZEEzWEfCcpO9Ays2KhA"/>
   <handlers xmi:id="_3I8psIDTEfCu2LYuODFptg" elementId="name.abuchen.portfolio.ui.handler.importTaxonomies" contributionURI="bundleclass://name.abuchen.portfolio.ui/name.abuchen.portfolio.ui.handlers.ImportTaxonomiesHandler" command="_zRHcgIDTEfCu2LYuODFptg"/>
   <handlers xmi:id="_k7AycID7EfCu2LYuODFptg" elementId="name.abuchen.portfolio.ui.handler.exportTaxonomies" contributionURI="bundleclass://name.abuchen.portfolio.ui/name.abuchen.portfolio.ui.handlers.ExportTaxonomiesHandler" command="_nkxqAID7EfCu2LYuODFptg"/>
+  <handlers xmi:id="_VorabpauschaleHandler" elementId="name.abuchen.portfolio.ui.handler.taxes.vorabpauschale" contributionURI="bundleclass://name.abuchen.portfolio.ui/name.abuchen.portfolio.ui.handlers.tools.VorabpauschaleHandler" command="_VorabpauschaleCommand"/>
+  <handlers xmi:id="_GermanTaxGainsHandler" elementId="name.abuchen.portfolio.ui.handler.taxes.germanTaxGains" contributionURI="bundleclass://name.abuchen.portfolio.ui/name.abuchen.portfolio.ui.handlers.tools.GermanTaxGainsHandler" command="_GermanTaxGainsCommand"/>
   <bindingTables xmi:id="_uK6dcBiSEeO8gYEHAOvLsA" elementId="" bindingContext="_7d8q4RjAEeO8gYEHAOvLsA">
     <bindings xmi:id="_yNkakBiSEeO8gYEHAOvLsA" elementId="" keySequence="M1+O" command="_3CjQwBfHEeOders_POVQHQ"/>
     <bindings xmi:id="_C46kcBi9EeO8gYEHAOvLsA" elementId="" keySequence="M1+Q" command="_1mco0Bi8EeO8gYEHAOvLsA"/>
@@ -338,6 +344,8 @@
   <commands xmi:id="_BackfillExDatesCommand" elementId="name.abuchen.portfolio.ui.command.tools.backfillExDates" commandName="%command.backfillExDates.name"/>
   <commands xmi:id="_zRHcgIDTEfCu2LYuODFptg" elementId="name.abuchen.portfolio.ui.command.importTaxonomies" commandName="importTaxonomies"/>
   <commands xmi:id="_nkxqAID7EfCu2LYuODFptg" elementId="name.abuchen.portfolio.ui.command.exportTaxonomies" commandName="exportTaxonomies"/>
+  <commands xmi:id="_VorabpauschaleCommand" elementId="name.abuchen.portfolio.ui.command.taxes.vorabpauschale" commandName="%command.vorabpauschale.name"/>
+  <commands xmi:id="_GermanTaxGainsCommand" elementId="name.abuchen.portfolio.ui.command.taxes.germanTaxGains" commandName="%command.germanTaxGains.name"/>
   <addons xmi:id="_4SwvYLOQEeWe1a5u3oOf1Q" elementId="name.abuchen.portfolio.ui.addon.proxy" contributionURI="bundleclass://name.abuchen.portfolio.ui/name.abuchen.portfolio.ui.addons.ProxyAddon"/>
   <addons xmi:id="_B_-6cKH7EeO9F5tUX5UqjQ" elementId="name.abuchen.portfolio.ui.addon.log" contributionURI="bundleclass://name.abuchen.portfolio.ui/name.abuchen.portfolio.ui.addons.StartupAddon"/>
   <addons xmi:id="_D8SDoRfFEeOders_POVQHQ" elementId="org.eclipse.e4.core.commands.service" contributionURI="bundleclass://org.eclipse.e4.core.commands/org.eclipse.e4.core.commands.CommandServiceAddon"/>
