@@ -59,4 +59,25 @@ public class VorabpauschaleCalculatorTest
         assertThat(r.getGrossBasisertrag(), is(Money.of("EUR", 147_58)));
         assertThat(r.getVorabpauschale(), is(Money.of("EUR", 147_58)));
     }
+
+    @Test
+    public void testDistributionsZeroOutVorabpauschale()
+    {
+        Client client = new Client();
+        Security security = new SecurityBuilder("EUR") //
+                        .addPrice("2024-01-01", Values.Quote.factorize(100.00)) //
+                        .addPrice("2024-12-31", Values.Quote.factorize(130.00)) //
+                        .addTo(client);
+        new PortfolioBuilder().buy(security, "2023-06-01", 100 * SHARE, 10_000_00).addTo(client);
+        // 200.00 EUR dividend in 2024 exceeds the 177.10 Basisertrag
+        // -> vorabpauschale = max(0, 177.10 - 200.00) = 0
+        new AccountBuilder().dividend("2024-06-01", 200_00, security).addTo(client);
+
+        VorabpauschaleResult r = VorabpauschaleCalculator.compute(client, security, 2024,
+                        new BigDecimal("2.53"), BigDecimal.ONE, eur);
+
+        assertThat(r.getDistributions(), is(Money.of("EUR", 200_00)));
+        assertThat(r.getVorabpauschale(), is(Money.of("EUR", 0)));
+        assertThat(r.getTaxable(), is(Money.of("EUR", 0)));
+    }
 }
