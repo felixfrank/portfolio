@@ -64,6 +64,7 @@ public class Client
     private List<InvestmentPlan> plans;
     private List<Taxonomy> taxonomies;
     private List<Dashboard> dashboards;
+    private List<VorabpauschaleEntry> vorabpauschaleEntries;
 
     private Map<String, String> properties;
     private ClientSettings settings;
@@ -111,6 +112,9 @@ public class Client
 
         if (dashboards == null)
             dashboards = new ArrayList<>();
+
+        if (vorabpauschaleEntries == null)
+            vorabpauschaleEntries = new ArrayList<>();
 
         if (settings == null)
             settings = new ClientSettings();
@@ -462,6 +466,21 @@ public class Client
     public void removeDashboard(Dashboard dashboard)
     {
         this.dashboards.remove(dashboard);
+    }
+
+    public List<VorabpauschaleEntry> getVorabpauschaleEntries()
+    {
+        return Collections.unmodifiableList(vorabpauschaleEntries);
+    }
+
+    public void addVorabpauschaleEntry(VorabpauschaleEntry entry)
+    {
+        vorabpauschaleEntries.add(entry);
+    }
+
+    public void removeVorabpauschaleEntry(VorabpauschaleEntry entry)
+    {
+        vorabpauschaleEntries.remove(entry);
     }
 
     public ClientSettings getSettings()
