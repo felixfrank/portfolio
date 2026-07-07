@@ -122,4 +122,18 @@ public class VorabpauschaleCalculatorTest
         assertThat(r.getLots().get(0).getContribution(), is(Money.of("EUR", 177_10)));
         assertThat(r.getLots().get(1).getContribution(), is(Money.of("EUR", 177_10)));
     }
+
+    @Test
+    public void testMissingYearStartPriceWarns()
+    {
+        Client client = new Client();
+        Security security = new SecurityBuilder("EUR").addTo(client); // no prices at all
+        new PortfolioBuilder().buy(security, "2023-06-01", 100 * SHARE, 10_000_00).addTo(client);
+
+        VorabpauschaleResult r = VorabpauschaleCalculator.compute(client, security, 2024,
+                        new BigDecimal("2.53"), BigDecimal.ONE, eur);
+
+        assertThat(r.getVorabpauschale(), is(Money.of("EUR", 0)));
+        assertThat(r.getWarnings().isEmpty(), is(false));
+    }
 }
