@@ -963,6 +963,8 @@ public class ClientFactory
                 // added exDate date field
             case 69: // NOSONAR
                 // add (optional) weight to client filter
+            case 70: // NOSONAR
+                // added Vorabpauschale ledger (additive, no data migration required)
 
                 client.setVersion(Client.CURRENT_VERSION);
                 break;
@@ -1864,6 +1866,7 @@ public class ClientFactory
             xstreamWriter.addImmutableType(ConfigurationSet.class, false);
             xstreamWriter.addImmutableType(ConfigurationSet.Configuration.class, false);
             xstreamWriter.addImmutableType(SecurityProperty.class, false);
+            xstreamWriter.addImmutableType(VorabpauschaleEntry.class, false);
         }
 
         return xstreamWriter;
@@ -1913,6 +1916,7 @@ public class ClientFactory
         xstream.alias("category", Category.class); // NOSONAR
         xstream.alias("watchlist", Watchlist.class);
         xstream.alias("investment-plan", InvestmentPlan.class);
+        xstream.alias("vorabpauschale-entry", VorabpauschaleEntry.class);
         xstream.alias("attribute-type", AttributeType.class);
 
         xstream.alias("price", SecurityPrice.class);
