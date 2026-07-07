@@ -28,6 +28,7 @@ Export-Package: name.abuchen.portfolio,
  name.abuchen.portfolio.snapshot.security,
  name.abuchen.portfolio.snapshot.trades,
  name.abuchen.portfolio.snapshot.trail,
+ name.abuchen.portfolio.snapshot.vorabpauschale,
  name.abuchen.portfolio.support,
  name.abuchen.portfolio.util
 Import-Package: com.auth0.jwt,

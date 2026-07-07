@@ -12,6 +12,7 @@ import java.util.List;
 
 import org.junit.Test;
 
+import name.abuchen.portfolio.model.Security;
 import name.abuchen.portfolio.money.Money;
 import name.abuchen.portfolio.snapshot.vorabpauschale.GermanTaxGainResult;
 import name.abuchen.portfolio.snapshot.vorabpauschale.LotContribution;
@@ -25,19 +26,23 @@ public class VorabpauschaleCSVExporterTest
     @Test
     public void testExportVorabpauschale() throws Exception
     {
+        Security security = new Security();
+        security.setName("TestFund");
+        security.setIsin("IE00TEST0001");
+
         LotContribution lot = new LotContribution(LocalDate.of(2024, 3, 10), 100_00000000L,
                         Money.of("EUR", 10_000_00), new BigDecimal("0.8333333333"), Money.of("EUR", 147_58),
                         Money.of("EUR", 147_58));
         List<LotContribution> lots = new ArrayList<>();
         lots.add(lot);
-        VorabpauschaleResult result = new VorabpauschaleResult(null, 2024, new BigDecimal("0.70"),
+        VorabpauschaleResult result = new VorabpauschaleResult(security, 2024, new BigDecimal("0.70"),
                         Money.of("EUR", 10_000_00), Money.of("EUR", 0), Money.of("EUR", 147_58),
                         Money.of("EUR", 147_58), Money.of("EUR", 147_58), Money.of("EUR", 103_31), lots,
                         new ArrayList<>());
 
         File file = File.createTempFile("vorab", ".csv");
         file.deleteOnExit();
-        new CSVExporter().exportVorabpauschale(file, List.of(result), "TestFund", "IE00TEST0001");
+        new CSVExporter().exportVorabpauschale(file, List.of(result));
 
         String content = Files.readString(file.toPath());
         // Assert only on locale-independent literals. Do NOT assert on formatted

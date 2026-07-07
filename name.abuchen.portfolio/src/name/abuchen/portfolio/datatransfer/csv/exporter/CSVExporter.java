@@ -323,10 +323,8 @@ public class CSVExporter
         return prices;
     }
 
-    public void exportVorabpauschale(File file, List<VorabpauschaleResult> results, String securityName,
-                    String isin) throws IOException
+    public void exportVorabpauschale(File file, List<VorabpauschaleResult> results) throws IOException
     {
-        // single-security export: securityName/isin identify the one security in 'results'
         try (var printer = new CSVPrinter(new OutputStreamWriter(new FileOutputStream(file), StandardCharsets.UTF_8),
                         STRATEGY))
         {
@@ -335,6 +333,8 @@ public class CSVExporter
 
             for (VorabpauschaleResult result : results)
             {
+                var securityName = result.getSecurity() != null ? result.getSecurity().getName() : "";
+                var isin = result.getSecurity() != null ? escapeNull(result.getSecurity().getIsin()) : "";
                 var factor = result.getTeilfreistellungFactor();
                 for (LotContribution lot : result.getLots())
                 {
@@ -343,7 +343,7 @@ public class CSVExporter
                                     : "";
                     long taxable = new java.math.BigDecimal(lot.getContribution().getAmount()).multiply(factor)
                                     .setScale(0, java.math.RoundingMode.HALF_UP).longValue();
-                    printer.printRecord(securityName, escapeNull(isin), Integer.toString(result.getYear()), monthBought,
+                    printer.printRecord(securityName, isin, Integer.toString(result.getYear()), monthBought,
                                     Values.Share.format(lot.getShares()),
                                     Values.Amount.format(lot.getBaseValue().getAmount()),
                                     Values.Amount.format(lot.getBasisertrag().getAmount()),
