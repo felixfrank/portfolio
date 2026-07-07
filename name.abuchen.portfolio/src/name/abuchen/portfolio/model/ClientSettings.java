@@ -117,6 +117,14 @@ public class ClientSettings
         ter.setConverter(PercentConverter.class);
         attributeTypes.add(ter);
 
+        AttributeType teilfreistellung = new AttributeType("teilfreistellung"); //$NON-NLS-1$
+        teilfreistellung.setName(Messages.AttributesTeilfreistellungName);
+        teilfreistellung.setColumnLabel(Messages.AttributesTeilfreistellungColumn);
+        teilfreistellung.setTarget(Security.class);
+        teilfreistellung.setType(Double.class);
+        teilfreistellung.setConverter(PercentConverter.class);
+        attributeTypes.add(teilfreistellung);
+
         AttributeType aum = new AttributeType("aum"); //$NON-NLS-1$
         aum.setName(Messages.AttributesAUMName);
         aum.setColumnLabel(Messages.AttributesAUMColumn);
