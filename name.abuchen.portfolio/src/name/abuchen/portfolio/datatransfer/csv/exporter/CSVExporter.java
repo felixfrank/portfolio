@@ -28,6 +28,11 @@ import name.abuchen.portfolio.model.Transaction.Unit;
 import name.abuchen.portfolio.money.CurrencyConverter;
 import name.abuchen.portfolio.money.Money;
 import name.abuchen.portfolio.money.Values;
+import name.abuchen.portfolio.snapshot.vorabpauschale.GermanTaxGainResult;
+import name.abuchen.portfolio.snapshot.vorabpauschale.LotContribution;
+import name.abuchen.portfolio.snapshot.vorabpauschale.LotGain;
+import name.abuchen.portfolio.snapshot.vorabpauschale.SaleGain;
+import name.abuchen.portfolio.snapshot.vorabpauschale.VorabpauschaleResult;
 import name.abuchen.portfolio.util.TextUtil;
 
 /* not thread safe */
@@ -316,6 +321,66 @@ public class CSVExporter
         }
 
         return prices;
+    }
+
+    public void exportVorabpauschale(File file, List<VorabpauschaleResult> results, String securityName,
+                    String isin) throws IOException
+    {
+        // single-security export: securityName/isin identify the one security in 'results'
+        try (var printer = new CSVPrinter(new OutputStreamWriter(new FileOutputStream(file), StandardCharsets.UTF_8),
+                        STRATEGY))
+        {
+            printer.printRecord("Security", "ISIN", "Year", "Month bought", "Shares", "Base value", "Basisertrag",
+                            "Vorabpauschale", "Teilfreistellung", "Taxable");
+
+            for (VorabpauschaleResult result : results)
+            {
+                var factor = result.getTeilfreistellungFactor();
+                for (LotContribution lot : result.getLots())
+                {
+                    var monthBought = lot.getPurchaseDate().getYear() == result.getYear()
+                                    ? Integer.toString(lot.getPurchaseDate().getMonthValue())
+                                    : "";
+                    long taxable = new java.math.BigDecimal(lot.getContribution().getAmount()).multiply(factor)
+                                    .setScale(0, java.math.RoundingMode.HALF_UP).longValue();
+                    printer.printRecord(securityName, escapeNull(isin), Integer.toString(result.getYear()), monthBought,
+                                    Values.Share.format(lot.getShares()),
+                                    Values.Amount.format(lot.getBaseValue().getAmount()),
+                                    Values.Amount.format(lot.getBasisertrag().getAmount()),
+                                    Values.Amount.format(lot.getContribution().getAmount()),
+                                    factor.toPlainString(), Values.Amount.format(taxable));
+                }
+            }
+        }
+    }
+
+    public void exportGermanTaxGains(File file, GermanTaxGainResult result,
+                    java.util.function.Function<Security, String> nameResolver) throws IOException
+    {
+        try (var printer = new CSVPrinter(new OutputStreamWriter(new FileOutputStream(file), StandardCharsets.UTF_8),
+                        STRATEGY))
+        {
+            printer.printRecord("Security", "Sale date", "Purchase date", "Shares", "Proceeds", "Cost",
+                            "Accumulated Vorabpauschale", "Gain before exemption", "Taxable gain");
+
+            for (SaleGain sale : result.getSales())
+            {
+                String name = nameResolver.apply(sale.getSecurity());
+                for (LotGain lot : sale.getLots())
+                {
+                    printer.printRecord(name, sale.getSaleDate().toString(), lot.getPurchaseDate().toString(),
+                                    Values.Share.format(lot.getShares()),
+                                    Values.Amount.format(lot.getProceeds().getAmount()),
+                                    Values.Amount.format(lot.getCost().getAmount()),
+                                    Values.Amount.format(lot.getAccumulatedVorabpauschale().getAmount()),
+                                    Values.Amount.format(lot.getGainBeforeExemption().getAmount()),
+                                    Values.Amount.format(lot.getTaxableGain().getAmount()));
+                }
+            }
+
+            printer.printRecord("TOTAL", "", "", "", "", "", "", "",
+                            Values.Amount.format(result.getTotalTaxableGain().getAmount()));
+        }
     }
 
     /* package */static String escapeNull(String value)
