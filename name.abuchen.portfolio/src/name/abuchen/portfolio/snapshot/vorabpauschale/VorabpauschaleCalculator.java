@@ -40,11 +40,11 @@ public final class VorabpauschaleCalculator
 
         long totalShares = lots.stream().mapToLong(OpenLot::getShares).sum();
         if (lots.isEmpty() || totalShares == 0)
-            return zero(security, year, eur, warnings);
+            return zero(security, year, teilfreistellungFactor, eur, warnings);
 
         var perShareStart = perShareInTermCurrency(security, yearStart, converter, warnings, true);
         if (perShareStart == null)
-            return zero(security, year, eur, warnings);
+            return zero(security, year, teilfreistellungFactor, eur, warnings);
 
         var basiszins = basiszinsPercent.movePointLeft(2); // 2.53 -> 0.0253
 
@@ -100,7 +100,7 @@ public final class VorabpauschaleCalculator
         var contributions = buildContributions(eur, lots, lotBaseValue, lotTimeFactor, lotBasisertrag, grossCents,
                         vorabCents, vorabpauschale.getAmount());
 
-        return new VorabpauschaleResult(security, year, money(eur, yearStartValueCents),
+        return new VorabpauschaleResult(security, year, teilfreistellungFactor, money(eur, yearStartValueCents),
                         money(eur, distributionsCents), money(eur, grossCents), money(eur, cappedCents),
                         vorabpauschale, money(eur, taxableCents), contributions, warnings);
     }
@@ -179,9 +179,11 @@ public final class VorabpauschaleCalculator
         return Money.of(currency, cents.setScale(0, RoundingMode.HALF_UP).longValue());
     }
 
-    private static VorabpauschaleResult zero(Security security, int year, String eur, List<String> warnings)
+    private static VorabpauschaleResult zero(Security security, int year, BigDecimal teilfreistellungFactor,
+                    String eur, List<String> warnings)
     {
         var z = Money.of(eur, 0);
-        return new VorabpauschaleResult(security, year, z, z, z, z, z, z, new ArrayList<>(), warnings);
+        return new VorabpauschaleResult(security, year, teilfreistellungFactor, z, z, z, z, z, z, new ArrayList<>(),
+                        warnings);
     }
 }
