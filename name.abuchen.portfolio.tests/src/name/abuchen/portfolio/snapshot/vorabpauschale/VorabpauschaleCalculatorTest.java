@@ -98,4 +98,28 @@ public class VorabpauschaleCalculatorTest
         assertThat(r.getCappedBasisertrag(), is(Money.of("EUR", 0)));
         assertThat(r.getVorabpauschale(), is(Money.of("EUR", 0)));
     }
+
+    @Test
+    public void testTeilfreistellungAndTwoLotAllocation()
+    {
+        Client client = new Client();
+        Security security = new SecurityBuilder("EUR") //
+                        .addPrice("2024-01-01", Values.Quote.factorize(100.00)) //
+                        .addPrice("2024-12-31", Values.Quote.factorize(130.00)) //
+                        .addTo(client);
+        new PortfolioBuilder() //
+                        .buy(security, "2022-06-01", 100 * SHARE, 10_000_00) //
+                        .buy(security, "2023-06-01", 100 * SHARE, 10_000_00) //
+                        .addTo(client);
+
+        VorabpauschaleResult r = VorabpauschaleCalculator.compute(client, security, 2024,
+                        new BigDecimal("2.53"), new BigDecimal("0.70"), eur);
+
+        // gross = 200sh * 100.00 * 0.0253 * 0.70 = 354.20; taxable = *0.70 = 247.94
+        assertThat(r.getVorabpauschale(), is(Money.of("EUR", 354_20)));
+        assertThat(r.getTaxable(), is(Money.of("EUR", 247_94)));
+        assertThat(r.getLots().size(), is(2));
+        assertThat(r.getLots().get(0).getContribution(), is(Money.of("EUR", 177_10)));
+        assertThat(r.getLots().get(1).getContribution(), is(Money.of("EUR", 177_10)));
+    }
 }
