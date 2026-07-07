@@ -267,6 +267,30 @@ java.lang.String defaultValue);
       getBaseCurrencyBytes();
 
   /**
+   * <code>repeated .name.abuchen.portfolio.PVorabpauschaleEntry vorabpauschaleEntries = 13;</code>
+   */
+  java.util.List<name.abuchen.portfolio.model.proto.v1.PVorabpauschaleEntry> 
+      getVorabpauschaleEntriesList();
+  /**
+   * <code>repeated .name.abuchen.portfolio.PVorabpauschaleEntry vorabpauschaleEntries = 13;</code>
+   */
+  name.abuchen.portfolio.model.proto.v1.PVorabpauschaleEntry getVorabpauschaleEntries(int index);
+  /**
+   * <code>repeated .name.abuchen.portfolio.PVorabpauschaleEntry vorabpauschaleEntries = 13;</code>
+   */
+  int getVorabpauschaleEntriesCount();
+  /**
+   * <code>repeated .name.abuchen.portfolio.PVorabpauschaleEntry vorabpauschaleEntries = 13;</code>
+   */
+  java.util.List<? extends name.abuchen.portfolio.model.proto.v1.PVorabpauschaleEntryOrBuilder> 
+      getVorabpauschaleEntriesOrBuilderList();
+  /**
+   * <code>repeated .name.abuchen.portfolio.PVorabpauschaleEntry vorabpauschaleEntries = 13;</code>
+   */
+  name.abuchen.portfolio.model.proto.v1.PVorabpauschaleEntryOrBuilder getVorabpauschaleEntriesOrBuilder(
+      int index);
+
+  /**
    * <pre>
    * Extension data using Any type for maximum flexibility
    * </pre>

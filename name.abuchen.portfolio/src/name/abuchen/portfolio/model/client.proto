@@ -297,6 +297,20 @@ message PSettings {
   repeated PConfigurationSet configurationSets = 3;
 }
 
+message PVorabpauschaleEntry {
+  string security = 1;                  // uuid
+  int32 year = 2;
+  string basiszins = 3;                 // BigDecimal as plain string
+  string teilfreistellungFactor = 4;    // BigDecimal as plain string
+  int64 yearStartValue = 5;
+  int64 distributions = 6;
+  int64 cappedBasisertrag = 7;
+  int64 vorabpauschale = 8;
+  int64 taxable = 9;
+  string currencyCode = 10;             // shared currency for all money fields
+  google.protobuf.Timestamp finalizedAt = 11;
+}
+
 message PClient {
   int32 version = 1;
 	
@@ -315,7 +329,8 @@ message PClient {
    
   PSettings settings = 11;
   string baseCurrency = 12;
-  
+  repeated PVorabpauschaleEntry vorabpauschaleEntries = 13;
+
   // Extension data using Any type for maximum flexibility
   repeated google.protobuf.Any extensions = 99;
 }

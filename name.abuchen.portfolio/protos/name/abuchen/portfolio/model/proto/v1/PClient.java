@@ -25,6 +25,7 @@ private static final long serialVersionUID = 0L;
     taxonomies_ = java.util.Collections.emptyList();
     dashboards_ = java.util.Collections.emptyList();
     baseCurrency_ = "";
+    vorabpauschaleEntries_ = java.util.Collections.emptyList();
     extensions_ = java.util.Collections.emptyList();
   }
 
@@ -543,6 +544,47 @@ java.lang.String defaultValue) {
     }
   }
 
+  public static final int VORABPAUSCHALEENTRIES_FIELD_NUMBER = 13;
+  @SuppressWarnings("serial")
+  private java.util.List<name.abuchen.portfolio.model.proto.v1.PVorabpauschaleEntry> vorabpauschaleEntries_;
+  /**
+   * <code>repeated .name.abuchen.portfolio.PVorabpauschaleEntry vorabpauschaleEntries = 13;</code>
+   */
+  @java.lang.Override
+  public java.util.List<name.abuchen.portfolio.model.proto.v1.PVorabpauschaleEntry> getVorabpauschaleEntriesList() {
+    return vorabpauschaleEntries_;
+  }
+  /**
+   * <code>repeated .name.abuchen.portfolio.PVorabpauschaleEntry vorabpauschaleEntries = 13;</code>
+   */
+  @java.lang.Override
+  public java.util.List<? extends name.abuchen.portfolio.model.proto.v1.PVorabpauschaleEntryOrBuilder> 
+      getVorabpauschaleEntriesOrBuilderList() {
+    return vorabpauschaleEntries_;
+  }
+  /**
+   * <code>repeated .name.abuchen.portfolio.PVorabpauschaleEntry vorabpauschaleEntries = 13;</code>
+   */
+  @java.lang.Override
+  public int getVorabpauschaleEntriesCount() {
+    return vorabpauschaleEntries_.size();
+  }
+  /**
+   * <code>repeated .name.abuchen.portfolio.PVorabpauschaleEntry vorabpauschaleEntries = 13;</code>
+   */
+  @java.lang.Override
+  public name.abuchen.portfolio.model.proto.v1.PVorabpauschaleEntry getVorabpauschaleEntries(int index) {
+    return vorabpauschaleEntries_.get(index);
+  }
+  /**
+   * <code>repeated .name.abuchen.portfolio.PVorabpauschaleEntry vorabpauschaleEntries = 13;</code>
+   */
+  @java.lang.Override
+  public name.abuchen.portfolio.model.proto.v1.PVorabpauschaleEntryOrBuilder getVorabpauschaleEntriesOrBuilder(
+      int index) {
+    return vorabpauschaleEntries_.get(index);
+  }
+
   public static final int EXTENSIONS_FIELD_NUMBER = 99;
   @SuppressWarnings("serial")
   private java.util.List<com.google.protobuf.Any> extensions_;
@@ -657,6 +699,9 @@ java.lang.String defaultValue) {
     if (!com.google.protobuf.GeneratedMessageV3.isStringEmpty(baseCurrency_)) {
       com.google.protobuf.GeneratedMessageV3.writeString(output, 12, baseCurrency_);
     }
+    for (int i = 0; i < vorabpauschaleEntries_.size(); i++) {
+      output.writeMessage(13, vorabpauschaleEntries_.get(i));
+    }
     for (int i = 0; i < extensions_.size(); i++) {
       output.writeMessage(99, extensions_.get(i));
     }
@@ -722,6 +767,10 @@ java.lang.String defaultValue) {
     if (!com.google.protobuf.GeneratedMessageV3.isStringEmpty(baseCurrency_)) {
       size += com.google.protobuf.GeneratedMessageV3.computeStringSize(12, baseCurrency_);
     }
+    for (int i = 0; i < vorabpauschaleEntries_.size(); i++) {
+      size += com.google.protobuf.CodedOutputStream
+        .computeMessageSize(13, vorabpauschaleEntries_.get(i));
+    }
     for (int i = 0; i < extensions_.size(); i++) {
       size += com.google.protobuf.CodedOutputStream
         .computeMessageSize(99, extensions_.get(i));
@@ -768,6 +817,8 @@ java.lang.String defaultValue) {
     }
     if (!getBaseCurrency()
         .equals(other.getBaseCurrency())) return false;
+    if (!getVorabpauschaleEntriesList()
+        .equals(other.getVorabpauschaleEntriesList())) return false;
     if (!getExtensionsList()
         .equals(other.getExtensionsList())) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
@@ -825,6 +876,10 @@ java.lang.String defaultValue) {
     }
     hash = (37 * hash) + BASECURRENCY_FIELD_NUMBER;
     hash = (53 * hash) + getBaseCurrency().hashCode();
+    if (getVorabpauschaleEntriesCount() > 0) {
+      hash = (37 * hash) + VORABPAUSCHALEENTRIES_FIELD_NUMBER;
+      hash = (53 * hash) + getVorabpauschaleEntriesList().hashCode();
+    }
     if (getExtensionsCount() > 0) {
       hash = (37 * hash) + EXTENSIONS_FIELD_NUMBER;
       hash = (53 * hash) + getExtensionsList().hashCode();
@@ -1044,13 +1099,20 @@ java.lang.String defaultValue) {
         settingsBuilder_ = null;
       }
       baseCurrency_ = "";
+      if (vorabpauschaleEntriesBuilder_ == null) {
+        vorabpauschaleEntries_ = java.util.Collections.emptyList();
+      } else {
+        vorabpauschaleEntries_ = null;
+        vorabpauschaleEntriesBuilder_.clear();
+      }
+      bitField0_ = (bitField0_ & ~0x00001000);
       if (extensionsBuilder_ == null) {
         extensions_ = java.util.Collections.emptyList();
       } else {
         extensions_ = null;
         extensionsBuilder_.clear();
       }
-      bitField0_ = (bitField0_ & ~0x00001000);
+      bitField0_ = (bitField0_ & ~0x00002000);
       return this;
     }
 
@@ -1156,10 +1218,19 @@ java.lang.String defaultValue) {
       } else {
         result.dashboards_ = dashboardsBuilder_.build();
       }
-      if (extensionsBuilder_ == null) {
+      if (vorabpauschaleEntriesBuilder_ == null) {
         if (((bitField0_ & 0x00001000) != 0)) {
-          extensions_ = java.util.Collections.unmodifiableList(extensions_);
+          vorabpauschaleEntries_ = java.util.Collections.unmodifiableList(vorabpauschaleEntries_);
           bitField0_ = (bitField0_ & ~0x00001000);
+        }
+        result.vorabpauschaleEntries_ = vorabpauschaleEntries_;
+      } else {
+        result.vorabpauschaleEntries_ = vorabpauschaleEntriesBuilder_.build();
+      }
+      if (extensionsBuilder_ == null) {
+        if (((bitField0_ & 0x00002000) != 0)) {
+          extensions_ = java.util.Collections.unmodifiableList(extensions_);
+          bitField0_ = (bitField0_ & ~0x00002000);
         }
         result.extensions_ = extensions_;
       } else {
@@ -1420,11 +1491,37 @@ java.lang.String defaultValue) {
         bitField0_ |= 0x00000800;
         onChanged();
       }
+      if (vorabpauschaleEntriesBuilder_ == null) {
+        if (!other.vorabpauschaleEntries_.isEmpty()) {
+          if (vorabpauschaleEntries_.isEmpty()) {
+            vorabpauschaleEntries_ = other.vorabpauschaleEntries_;
+            bitField0_ = (bitField0_ & ~0x00001000);
+          } else {
+            ensureVorabpauschaleEntriesIsMutable();
+            vorabpauschaleEntries_.addAll(other.vorabpauschaleEntries_);
+          }
+          onChanged();
+        }
+      } else {
+        if (!other.vorabpauschaleEntries_.isEmpty()) {
+          if (vorabpauschaleEntriesBuilder_.isEmpty()) {
+            vorabpauschaleEntriesBuilder_.dispose();
+            vorabpauschaleEntriesBuilder_ = null;
+            vorabpauschaleEntries_ = other.vorabpauschaleEntries_;
+            bitField0_ = (bitField0_ & ~0x00001000);
+            vorabpauschaleEntriesBuilder_ = 
+              com.google.protobuf.GeneratedMessageV3.alwaysUseFieldBuilders ?
+                 getVorabpauschaleEntriesFieldBuilder() : null;
+          } else {
+            vorabpauschaleEntriesBuilder_.addAllMessages(other.vorabpauschaleEntries_);
+          }
+        }
+      }
       if (extensionsBuilder_ == null) {
         if (!other.extensions_.isEmpty()) {
           if (extensions_.isEmpty()) {
             extensions_ = other.extensions_;
-            bitField0_ = (bitField0_ & ~0x00001000);
+            bitField0_ = (bitField0_ & ~0x00002000);
           } else {
             ensureExtensionsIsMutable();
             extensions_.addAll(other.extensions_);
@@ -1437,7 +1534,7 @@ java.lang.String defaultValue) {
             extensionsBuilder_.dispose();
             extensionsBuilder_ = null;
             extensions_ = other.extensions_;
-            bitField0_ = (bitField0_ & ~0x00001000);
+            bitField0_ = (bitField0_ & ~0x00002000);
             extensionsBuilder_ = 
               com.google.protobuf.GeneratedMessageV3.alwaysUseFieldBuilders ?
                  getExtensionsFieldBuilder() : null;
@@ -1602,6 +1699,19 @@ java.lang.String defaultValue) {
               bitField0_ |= 0x00000800;
               break;
             } // case 98
+            case 106: {
+              name.abuchen.portfolio.model.proto.v1.PVorabpauschaleEntry m =
+                  input.readMessage(
+                      name.abuchen.portfolio.model.proto.v1.PVorabpauschaleEntry.parser(),
+                      extensionRegistry);
+              if (vorabpauschaleEntriesBuilder_ == null) {
+                ensureVorabpauschaleEntriesIsMutable();
+                vorabpauschaleEntries_.add(m);
+              } else {
+                vorabpauschaleEntriesBuilder_.addMessage(m);
+              }
+              break;
+            } // case 106
             case 794: {
               com.google.protobuf.Any m =
                   input.readMessage(
@@ -3902,12 +4012,252 @@ java.lang.String defaultValue) {
       return this;
     }
 
+    private java.util.List<name.abuchen.portfolio.model.proto.v1.PVorabpauschaleEntry> vorabpauschaleEntries_ =
+      java.util.Collections.emptyList();
+    private void ensureVorabpauschaleEntriesIsMutable() {
+      if (!((bitField0_ & 0x00001000) != 0)) {
+        vorabpauschaleEntries_ = new java.util.ArrayList<name.abuchen.portfolio.model.proto.v1.PVorabpauschaleEntry>(vorabpauschaleEntries_);
+        bitField0_ |= 0x00001000;
+       }
+    }
+
+    private com.google.protobuf.RepeatedFieldBuilderV3<
+        name.abuchen.portfolio.model.proto.v1.PVorabpauschaleEntry, name.abuchen.portfolio.model.proto.v1.PVorabpauschaleEntry.Builder, name.abuchen.portfolio.model.proto.v1.PVorabpauschaleEntryOrBuilder> vorabpauschaleEntriesBuilder_;
+
+    /**
+     * <code>repeated .name.abuchen.portfolio.PVorabpauschaleEntry vorabpauschaleEntries = 13;</code>
+     */
+    public java.util.List<name.abuchen.portfolio.model.proto.v1.PVorabpauschaleEntry> getVorabpauschaleEntriesList() {
+      if (vorabpauschaleEntriesBuilder_ == null) {
+        return java.util.Collections.unmodifiableList(vorabpauschaleEntries_);
+      } else {
+        return vorabpauschaleEntriesBuilder_.getMessageList();
+      }
+    }
+    /**
+     * <code>repeated .name.abuchen.portfolio.PVorabpauschaleEntry vorabpauschaleEntries = 13;</code>
+     */
+    public int getVorabpauschaleEntriesCount() {
+      if (vorabpauschaleEntriesBuilder_ == null) {
+        return vorabpauschaleEntries_.size();
+      } else {
+        return vorabpauschaleEntriesBuilder_.getCount();
+      }
+    }
+    /**
+     * <code>repeated .name.abuchen.portfolio.PVorabpauschaleEntry vorabpauschaleEntries = 13;</code>
+     */
+    public name.abuchen.portfolio.model.proto.v1.PVorabpauschaleEntry getVorabpauschaleEntries(int index) {
+      if (vorabpauschaleEntriesBuilder_ == null) {
+        return vorabpauschaleEntries_.get(index);
+      } else {
+        return vorabpauschaleEntriesBuilder_.getMessage(index);
+      }
+    }
+    /**
+     * <code>repeated .name.abuchen.portfolio.PVorabpauschaleEntry vorabpauschaleEntries = 13;</code>
+     */
+    public Builder setVorabpauschaleEntries(
+        int index, name.abuchen.portfolio.model.proto.v1.PVorabpauschaleEntry value) {
+      if (vorabpauschaleEntriesBuilder_ == null) {
+        if (value == null) {
+          throw new NullPointerException();
+        }
+        ensureVorabpauschaleEntriesIsMutable();
+        vorabpauschaleEntries_.set(index, value);
+        onChanged();
+      } else {
+        vorabpauschaleEntriesBuilder_.setMessage(index, value);
+      }
+      return this;
+    }
+    /**
+     * <code>repeated .name.abuchen.portfolio.PVorabpauschaleEntry vorabpauschaleEntries = 13;</code>
+     */
+    public Builder setVorabpauschaleEntries(
+        int index, name.abuchen.portfolio.model.proto.v1.PVorabpauschaleEntry.Builder builderForValue) {
+      if (vorabpauschaleEntriesBuilder_ == null) {
+        ensureVorabpauschaleEntriesIsMutable();
+        vorabpauschaleEntries_.set(index, builderForValue.build());
+        onChanged();
+      } else {
+        vorabpauschaleEntriesBuilder_.setMessage(index, builderForValue.build());
+      }
+      return this;
+    }
+    /**
+     * <code>repeated .name.abuchen.portfolio.PVorabpauschaleEntry vorabpauschaleEntries = 13;</code>
+     */
+    public Builder addVorabpauschaleEntries(name.abuchen.portfolio.model.proto.v1.PVorabpauschaleEntry value) {
+      if (vorabpauschaleEntriesBuilder_ == null) {
+        if (value == null) {
+          throw new NullPointerException();
+        }
+        ensureVorabpauschaleEntriesIsMutable();
+        vorabpauschaleEntries_.add(value);
+        onChanged();
+      } else {
+        vorabpauschaleEntriesBuilder_.addMessage(value);
+      }
+      return this;
+    }
+    /**
+     * <code>repeated .name.abuchen.portfolio.PVorabpauschaleEntry vorabpauschaleEntries = 13;</code>
+     */
+    public Builder addVorabpauschaleEntries(
+        int index, name.abuchen.portfolio.model.proto.v1.PVorabpauschaleEntry value) {
+      if (vorabpauschaleEntriesBuilder_ == null) {
+        if (value == null) {
+          throw new NullPointerException();
+        }
+        ensureVorabpauschaleEntriesIsMutable();
+        vorabpauschaleEntries_.add(index, value);
+        onChanged();
+      } else {
+        vorabpauschaleEntriesBuilder_.addMessage(index, value);
+      }
+      return this;
+    }
+    /**
+     * <code>repeated .name.abuchen.portfolio.PVorabpauschaleEntry vorabpauschaleEntries = 13;</code>
+     */
+    public Builder addVorabpauschaleEntries(
+        name.abuchen.portfolio.model.proto.v1.PVorabpauschaleEntry.Builder builderForValue) {
+      if (vorabpauschaleEntriesBuilder_ == null) {
+        ensureVorabpauschaleEntriesIsMutable();
+        vorabpauschaleEntries_.add(builderForValue.build());
+        onChanged();
+      } else {
+        vorabpauschaleEntriesBuilder_.addMessage(builderForValue.build());
+      }
+      return this;
+    }
+    /**
+     * <code>repeated .name.abuchen.portfolio.PVorabpauschaleEntry vorabpauschaleEntries = 13;</code>
+     */
+    public Builder addVorabpauschaleEntries(
+        int index, name.abuchen.portfolio.model.proto.v1.PVorabpauschaleEntry.Builder builderForValue) {
+      if (vorabpauschaleEntriesBuilder_ == null) {
+        ensureVorabpauschaleEntriesIsMutable();
+        vorabpauschaleEntries_.add(index, builderForValue.build());
+        onChanged();
+      } else {
+        vorabpauschaleEntriesBuilder_.addMessage(index, builderForValue.build());
+      }
+      return this;
+    }
+    /**
+     * <code>repeated .name.abuchen.portfolio.PVorabpauschaleEntry vorabpauschaleEntries = 13;</code>
+     */
+    public Builder addAllVorabpauschaleEntries(
+        java.lang.Iterable<? extends name.abuchen.portfolio.model.proto.v1.PVorabpauschaleEntry> values) {
+      if (vorabpauschaleEntriesBuilder_ == null) {
+        ensureVorabpauschaleEntriesIsMutable();
+        com.google.protobuf.AbstractMessageLite.Builder.addAll(
+            values, vorabpauschaleEntries_);
+        onChanged();
+      } else {
+        vorabpauschaleEntriesBuilder_.addAllMessages(values);
+      }
+      return this;
+    }
+    /**
+     * <code>repeated .name.abuchen.portfolio.PVorabpauschaleEntry vorabpauschaleEntries = 13;</code>
+     */
+    public Builder clearVorabpauschaleEntries() {
+      if (vorabpauschaleEntriesBuilder_ == null) {
+        vorabpauschaleEntries_ = java.util.Collections.emptyList();
+        bitField0_ = (bitField0_ & ~0x00001000);
+        onChanged();
+      } else {
+        vorabpauschaleEntriesBuilder_.clear();
+      }
+      return this;
+    }
+    /**
+     * <code>repeated .name.abuchen.portfolio.PVorabpauschaleEntry vorabpauschaleEntries = 13;</code>
+     */
+    public Builder removeVorabpauschaleEntries(int index) {
+      if (vorabpauschaleEntriesBuilder_ == null) {
+        ensureVorabpauschaleEntriesIsMutable();
+        vorabpauschaleEntries_.remove(index);
+        onChanged();
+      } else {
+        vorabpauschaleEntriesBuilder_.remove(index);
+      }
+      return this;
+    }
+    /**
+     * <code>repeated .name.abuchen.portfolio.PVorabpauschaleEntry vorabpauschaleEntries = 13;</code>
+     */
+    public name.abuchen.portfolio.model.proto.v1.PVorabpauschaleEntry.Builder getVorabpauschaleEntriesBuilder(
+        int index) {
+      return getVorabpauschaleEntriesFieldBuilder().getBuilder(index);
+    }
+    /**
+     * <code>repeated .name.abuchen.portfolio.PVorabpauschaleEntry vorabpauschaleEntries = 13;</code>
+     */
+    public name.abuchen.portfolio.model.proto.v1.PVorabpauschaleEntryOrBuilder getVorabpauschaleEntriesOrBuilder(
+        int index) {
+      if (vorabpauschaleEntriesBuilder_ == null) {
+        return vorabpauschaleEntries_.get(index);  } else {
+        return vorabpauschaleEntriesBuilder_.getMessageOrBuilder(index);
+      }
+    }
+    /**
+     * <code>repeated .name.abuchen.portfolio.PVorabpauschaleEntry vorabpauschaleEntries = 13;</code>
+     */
+    public java.util.List<? extends name.abuchen.portfolio.model.proto.v1.PVorabpauschaleEntryOrBuilder> 
+         getVorabpauschaleEntriesOrBuilderList() {
+      if (vorabpauschaleEntriesBuilder_ != null) {
+        return vorabpauschaleEntriesBuilder_.getMessageOrBuilderList();
+      } else {
+        return java.util.Collections.unmodifiableList(vorabpauschaleEntries_);
+      }
+    }
+    /**
+     * <code>repeated .name.abuchen.portfolio.PVorabpauschaleEntry vorabpauschaleEntries = 13;</code>
+     */
+    public name.abuchen.portfolio.model.proto.v1.PVorabpauschaleEntry.Builder addVorabpauschaleEntriesBuilder() {
+      return getVorabpauschaleEntriesFieldBuilder().addBuilder(
+          name.abuchen.portfolio.model.proto.v1.PVorabpauschaleEntry.getDefaultInstance());
+    }
+    /**
+     * <code>repeated .name.abuchen.portfolio.PVorabpauschaleEntry vorabpauschaleEntries = 13;</code>
+     */
+    public name.abuchen.portfolio.model.proto.v1.PVorabpauschaleEntry.Builder addVorabpauschaleEntriesBuilder(
+        int index) {
+      return getVorabpauschaleEntriesFieldBuilder().addBuilder(
+          index, name.abuchen.portfolio.model.proto.v1.PVorabpauschaleEntry.getDefaultInstance());
+    }
+    /**
+     * <code>repeated .name.abuchen.portfolio.PVorabpauschaleEntry vorabpauschaleEntries = 13;</code>
+     */
+    public java.util.List<name.abuchen.portfolio.model.proto.v1.PVorabpauschaleEntry.Builder> 
+         getVorabpauschaleEntriesBuilderList() {
+      return getVorabpauschaleEntriesFieldBuilder().getBuilderList();
+    }
+    private com.google.protobuf.RepeatedFieldBuilderV3<
+        name.abuchen.portfolio.model.proto.v1.PVorabpauschaleEntry, name.abuchen.portfolio.model.proto.v1.PVorabpauschaleEntry.Builder, name.abuchen.portfolio.model.proto.v1.PVorabpauschaleEntryOrBuilder> 
+        getVorabpauschaleEntriesFieldBuilder() {
+      if (vorabpauschaleEntriesBuilder_ == null) {
+        vorabpauschaleEntriesBuilder_ = new com.google.protobuf.RepeatedFieldBuilderV3<
+            name.abuchen.portfolio.model.proto.v1.PVorabpauschaleEntry, name.abuchen.portfolio.model.proto.v1.PVorabpauschaleEntry.Builder, name.abuchen.portfolio.model.proto.v1.PVorabpauschaleEntryOrBuilder>(
+                vorabpauschaleEntries_,
+                ((bitField0_ & 0x00001000) != 0),
+                getParentForChildren(),
+                isClean());
+        vorabpauschaleEntries_ = null;
+      }
+      return vorabpauschaleEntriesBuilder_;
+    }
+
     private java.util.List<com.google.protobuf.Any> extensions_ =
       java.util.Collections.emptyList();
     private void ensureExtensionsIsMutable() {
-      if (!((bitField0_ & 0x00001000) != 0)) {
+      if (!((bitField0_ & 0x00002000) != 0)) {
         extensions_ = new java.util.ArrayList<com.google.protobuf.Any>(extensions_);
-        bitField0_ |= 0x00001000;
+        bitField0_ |= 0x00002000;
        }
     }
 
@@ -4101,7 +4451,7 @@ java.lang.String defaultValue) {
     public Builder clearExtensions() {
       if (extensionsBuilder_ == null) {
         extensions_ = java.util.Collections.emptyList();
-        bitField0_ = (bitField0_ & ~0x00001000);
+        bitField0_ = (bitField0_ & ~0x00002000);
         onChanged();
       } else {
         extensionsBuilder_.clear();
@@ -4206,7 +4556,7 @@ java.lang.String defaultValue) {
         extensionsBuilder_ = new com.google.protobuf.RepeatedFieldBuilderV3<
             com.google.protobuf.Any, com.google.protobuf.Any.Builder, com.google.protobuf.AnyOrBuilder>(
                 extensions_,
-                ((bitField0_ & 0x00001000) != 0),
+                ((bitField0_ & 0x00002000) != 0),
                 getParentForChildren(),
                 isClean());
         extensions_ = null;
