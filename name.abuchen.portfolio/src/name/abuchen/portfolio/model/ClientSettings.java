@@ -117,13 +117,7 @@ public class ClientSettings
         ter.setConverter(PercentConverter.class);
         attributeTypes.add(ter);
 
-        AttributeType teilfreistellung = new AttributeType("teilfreistellung"); //$NON-NLS-1$
-        teilfreistellung.setName(Messages.AttributesTeilfreistellungName);
-        teilfreistellung.setColumnLabel(Messages.AttributesTeilfreistellungColumn);
-        teilfreistellung.setTarget(Security.class);
-        teilfreistellung.setType(Double.class);
-        teilfreistellung.setConverter(PercentConverter.class);
-        attributeTypes.add(teilfreistellung);
+        attributeTypes.add(createTeilfreistellungAttributeType());
 
         AttributeType aum = new AttributeType("aum"); //$NON-NLS-1$
         aum.setName(Messages.AttributesAUMName);
@@ -157,6 +151,22 @@ public class ClientSettings
         managementFee.setType(Double.class);
         managementFee.setConverter(PercentConverter.class);
         attributeTypes.add(managementFee);
+    }
+
+    /**
+     * Creates the per-security Teilfreistellung (partial exemption) attribute
+     * type. Its id must stay {@code "teilfreistellung"} because the
+     * Vorabpauschale calculation resolves the value by that id.
+     */
+    public static AttributeType createTeilfreistellungAttributeType()
+    {
+        AttributeType teilfreistellung = new AttributeType("teilfreistellung"); //$NON-NLS-1$
+        teilfreistellung.setName(Messages.AttributesTeilfreistellungName);
+        teilfreistellung.setColumnLabel(Messages.AttributesTeilfreistellungColumn);
+        teilfreistellung.setTarget(Security.class);
+        teilfreistellung.setType(Double.class);
+        teilfreistellung.setConverter(PercentConverter.class);
+        return teilfreistellung;
     }
 
     public List<Bookmark> getBookmarks()

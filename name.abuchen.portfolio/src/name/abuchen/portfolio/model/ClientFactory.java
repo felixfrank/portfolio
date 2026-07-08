@@ -965,6 +965,8 @@ public class ClientFactory
                 // add (optional) weight to client filter
             case 70: // NOSONAR
                 // added Vorabpauschale ledger (additive, no data migration required)
+            case 71: // NOSONAR
+                addTeilfreistellungAttributeType(client);
 
                 client.setVersion(Client.CURRENT_VERSION);
                 break;
@@ -1717,6 +1719,17 @@ public class ClientFactory
                 }
             }
         }
+    }
+
+    private static void addTeilfreistellungAttributeType(Client client)
+    {
+        // the per-security Teilfreistellung attribute was added as a default for
+        // new files only; inject it into existing files (unless already present)
+        // so it becomes editable in the security's attributes
+        boolean exists = client.getSettings().getAttributeTypes()
+                        .anyMatch(t -> "teilfreistellung".equals(t.getId())); //$NON-NLS-1$
+        if (!exists)
+            client.getSettings().addAttributeType(ClientSettings.createTeilfreistellungAttributeType());
     }
 
     private static void addInvestmentPlanTypes(Client client)
