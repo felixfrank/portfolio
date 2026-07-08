@@ -16,7 +16,6 @@ import name.abuchen.portfolio.model.Client;
 import name.abuchen.portfolio.model.PortfolioTransaction;
 import name.abuchen.portfolio.model.Security;
 import name.abuchen.portfolio.model.TransactionPair;
-import name.abuchen.portfolio.model.VorabpauschaleEntry;
 import name.abuchen.portfolio.money.CurrencyConverter;
 import name.abuchen.portfolio.money.Money;
 import name.abuchen.portfolio.money.Values;
@@ -124,20 +123,16 @@ public final class GermanTaxGainCalculator
             switch (tx.getType())
             {
                 case BUY, DELIVERY_INBOUND:
-                {
                     long costCents = converter.convert(tx.getDateTime().toLocalDate(), tx.getGrossValue()).getAmount();
                     open.addLast(new Lot(tx, costCents));
                     break;
-                }
                 case SELL, DELIVERY_OUTBOUND:
-                {
                     boolean inTargetYear = txYear == year;
-                    long proceedsCents = converter
-                                    .convert(tx.getDateTime().toLocalDate(), tx.getGrossValue()).getAmount();
-                    consumeSale(open, tx, proceedsCents, inTargetYear, security, exemption, termCurrency,
-                                    result, warnings);
+                    long proceedsCents = converter.convert(tx.getDateTime().toLocalDate(), tx.getGrossValue())
+                                    .getAmount();
+                    consumeSale(open, tx, proceedsCents, inTargetYear, security, exemption, termCurrency, result,
+                                    warnings);
                     break;
-                }
                 case TRANSFER_IN, TRANSFER_OUT:
                     // investor-level no-op; transfers between the investor's own
                     // portfolios do not change the holding

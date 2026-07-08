@@ -22,8 +22,20 @@ public final class GermanTaxGainResult
         this.warnings = Collections.unmodifiableList(new ArrayList<>(warnings));
     }
 
-    public int getYear() { return year; }
-    public List<SaleGain> getSales() { return sales; }
-    public Money getTotalTaxableGain() { return totalTaxableGain; }
-    public List<String> getWarnings() { return warnings; }
+    public int getYear()
+    {
+        return year;
+    }
+    public List<SaleGain> getSales()
+    {
+        return sales;
+    }
+    public Money getTotalTaxableGain()
+    {
+        return totalTaxableGain;
+    }
+    public List<String> getWarnings()
+    {
+        return warnings;
+    }
 }

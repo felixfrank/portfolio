@@ -40,15 +40,48 @@ public final class VorabpauschaleResult
         this.warnings = Collections.unmodifiableList(new ArrayList<>(warnings));
     }
 
-    public Security getSecurity() { return security; }
-    public int getYear() { return year; }
-    public BigDecimal getTeilfreistellungFactor() { return teilfreistellungFactor; }
-    public Money getYearStartValue() { return yearStartValue; }
-    public Money getDistributions() { return distributions; }
-    public Money getGrossBasisertrag() { return grossBasisertrag; }
-    public Money getCappedBasisertrag() { return cappedBasisertrag; }
-    public Money getVorabpauschale() { return vorabpauschale; }
-    public Money getTaxable() { return taxable; }
-    public List<LotContribution> getLots() { return lots; }
-    public List<String> getWarnings() { return warnings; }
+    public Security getSecurity()
+    {
+        return security;
+    }
+    public int getYear()
+    {
+        return year;
+    }
+    public BigDecimal getTeilfreistellungFactor()
+    {
+        return teilfreistellungFactor;
+    }
+    public Money getYearStartValue()
+    {
+        return yearStartValue;
+    }
+    public Money getDistributions()
+    {
+        return distributions;
+    }
+    public Money getGrossBasisertrag()
+    {
+        return grossBasisertrag;
+    }
+    public Money getCappedBasisertrag()
+    {
+        return cappedBasisertrag;
+    }
+    public Money getVorabpauschale()
+    {
+        return vorabpauschale;
+    }
+    public Money getTaxable()
+    {
+        return taxable;
+    }
+    public List<LotContribution> getLots()
+    {
+        return lots;
+    }
+    public List<String> getWarnings()
+    {
+        return warnings;
+    }
 }

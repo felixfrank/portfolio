@@ -26,10 +26,28 @@ public final class LotContribution
         this.contribution = contribution;
     }
 
-    public LocalDate getPurchaseDate() { return purchaseDate; }
-    public long getShares() { return shares; }
-    public Money getBaseValue() { return baseValue; }
-    public BigDecimal getTimeFactor() { return timeFactor; }
-    public Money getBasisertrag() { return basisertrag; }
-    public Money getContribution() { return contribution; }
+    public LocalDate getPurchaseDate()
+    {
+        return purchaseDate;
+    }
+    public long getShares()
+    {
+        return shares;
+    }
+    public Money getBaseValue()
+    {
+        return baseValue;
+    }
+    public BigDecimal getTimeFactor()
+    {
+        return timeFactor;
+    }
+    public Money getBasisertrag()
+    {
+        return basisertrag;
+    }
+    public Money getContribution()
+    {
+        return contribution;
+    }
 }

@@ -27,11 +27,32 @@ public final class LotGain
         this.taxableGain = taxableGain;
     }
 
-    public LocalDate getPurchaseDate() { return purchaseDate; }
-    public long getShares() { return shares; }
-    public Money getProceeds() { return proceeds; }
-    public Money getCost() { return cost; }
-    public Money getAccumulatedVorabpauschale() { return accumulatedVorabpauschale; }
-    public Money getGainBeforeExemption() { return gainBeforeExemption; }
-    public Money getTaxableGain() { return taxableGain; }
+    public LocalDate getPurchaseDate()
+    {
+        return purchaseDate;
+    }
+    public long getShares()
+    {
+        return shares;
+    }
+    public Money getProceeds()
+    {
+        return proceeds;
+    }
+    public Money getCost()
+    {
+        return cost;
+    }
+    public Money getAccumulatedVorabpauschale()
+    {
+        return accumulatedVorabpauschale;
+    }
+    public Money getGainBeforeExemption()
+    {
+        return gainBeforeExemption;
+    }
+    public Money getTaxableGain()
+    {
+        return taxableGain;
+    }
 }

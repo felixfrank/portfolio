@@ -35,13 +35,40 @@ public final class SaleGain
         this.lots = Collections.unmodifiableList(new ArrayList<>(lots));
     }
 
-    public Security getSecurity() { return security; }
-    public LocalDate getSaleDate() { return saleDate; }
-    public long getShares() { return shares; }
-    public Money getProceeds() { return proceeds; }
-    public Money getCost() { return cost; }
-    public Money getAccumulatedVorabpauschale() { return accumulatedVorabpauschale; }
-    public Money getGainBeforeExemption() { return gainBeforeExemption; }
-    public Money getTaxableGain() { return taxableGain; }
-    public List<LotGain> getLots() { return lots; }
+    public Security getSecurity()
+    {
+        return security;
+    }
+    public LocalDate getSaleDate()
+    {
+        return saleDate;
+    }
+    public long getShares()
+    {
+        return shares;
+    }
+    public Money getProceeds()
+    {
+        return proceeds;
+    }
+    public Money getCost()
+    {
+        return cost;
+    }
+    public Money getAccumulatedVorabpauschale()
+    {
+        return accumulatedVorabpauschale;
+    }
+    public Money getGainBeforeExemption()
+    {
+        return gainBeforeExemption;
+    }
+    public Money getTaxableGain()
+    {
+        return taxableGain;
+    }
+    public List<LotGain> getLots()
+    {
+        return lots;
+    }
 }

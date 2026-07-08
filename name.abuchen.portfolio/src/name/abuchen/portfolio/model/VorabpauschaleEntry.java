@@ -40,14 +40,44 @@ public final class VorabpauschaleEntry
         this.finalizedAt = finalizedAt;
     }
 
-    public Security getSecurity() { return security; }
-    public int getYear() { return year; }
-    public BigDecimal getBasiszins() { return basiszins; }
-    public BigDecimal getTeilfreistellungFactor() { return teilfreistellungFactor; }
-    public Money getYearStartValue() { return yearStartValue; }
-    public Money getDistributions() { return distributions; }
-    public Money getCappedBasisertrag() { return cappedBasisertrag; }
-    public Money getVorabpauschale() { return vorabpauschale; }
-    public Money getTaxable() { return taxable; }
-    public Instant getFinalizedAt() { return finalizedAt; }
+    public Security getSecurity()
+    {
+        return security;
+    }
+    public int getYear()
+    {
+        return year;
+    }
+    public BigDecimal getBasiszins()
+    {
+        return basiszins;
+    }
+    public BigDecimal getTeilfreistellungFactor()
+    {
+        return teilfreistellungFactor;
+    }
+    public Money getYearStartValue()
+    {
+        return yearStartValue;
+    }
+    public Money getDistributions()
+    {
+        return distributions;
+    }
+    public Money getCappedBasisertrag()
+    {
+        return cappedBasisertrag;
+    }
+    public Money getVorabpauschale()
+    {
+        return vorabpauschale;
+    }
+    public Money getTaxable()
+    {
+        return taxable;
+    }
+    public Instant getFinalizedAt()
+    {
+        return finalizedAt;
+    }
 }
