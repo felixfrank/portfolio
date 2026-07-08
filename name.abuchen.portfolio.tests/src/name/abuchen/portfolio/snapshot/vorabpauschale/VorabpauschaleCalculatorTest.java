@@ -47,6 +47,29 @@ public class VorabpauschaleCalculatorTest
     }
 
     @Test
+    public void testYearStartUsesFirstPriceOfYearNotPriorYearClose()
+    {
+        // the prior-year close (Dec 30) must be ignored; the base value uses the
+        // first redemption price fixed in the target year (Jan 2)
+        Client client = new Client();
+        Security security = new SecurityBuilder("EUR") //
+                        .addPrice("2023-12-30", Values.Quote.factorize(100.00)) //
+                        .addPrice("2024-01-02", Values.Quote.factorize(110.00)) //
+                        .addPrice("2024-12-31", Values.Quote.factorize(130.00)) //
+                        .addTo(client);
+        new PortfolioBuilder().buy(security, "2023-06-01", 100 * SHARE, 10_000_00).addTo(client);
+
+        VorabpauschaleResult r = VorabpauschaleCalculator.compute(client, security, 2024,
+                        new BigDecimal("2.53"), BigDecimal.ONE, eur);
+
+        // base = 100sh * 110.00 (Jan 2), not 100.00 (Dec 30)
+        assertThat(r.getPerShareYearStart(), is(Money.of("EUR", 110_00)));
+        assertThat(r.getYearStartValue(), is(Money.of("EUR", 11_000_00)));
+        // gross = 11000 * 0.0253 * 0.70 = 194.81
+        assertThat(r.getGrossBasisertrag(), is(Money.of("EUR", 194_81)));
+    }
+
+    @Test
     public void testMidYearPurchaseReducedByTwelfths()
     {
         Client client = new Client();

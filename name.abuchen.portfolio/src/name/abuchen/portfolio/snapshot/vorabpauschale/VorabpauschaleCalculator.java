@@ -5,6 +5,7 @@ import java.math.RoundingMode;
 import java.text.MessageFormat;
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 import name.abuchen.portfolio.model.AccountTransaction;
@@ -42,9 +43,16 @@ public final class VorabpauschaleCalculator
         if (lots.isEmpty() || totalShares == 0)
             return zero(security, year, teilfreistellungFactor, eur, warnings);
 
-        var perShareStart = perShareInTermCurrency(security, yearStart, converter, warnings, true);
-        if (perShareStart == null)
+        // the Vorabpauschale is based on the first redemption price fixed IN the
+        // calendar year ("erster im Kalenderjahr festgesetzter Rücknahmepreis"),
+        // not the last price of the prior year
+        var startPrice = firstPriceInYear(security, yearStart, yearEnd);
+        if (startPrice == null || startPrice.getValue() == 0)
+        {
+            warnings.add(MessageFormat.format("Missing year-start price for {0}", security.getName()));
             return zero(security, year, teilfreistellungFactor, eur, warnings);
+        }
+        var perShareStart = toTermCurrency(security, startPrice, converter);
 
         var basiszins = basiszinsPercent.movePointLeft(2); // 2.53 -> 0.0253
 
@@ -83,10 +91,15 @@ public final class VorabpauschaleCalculator
 
         var distributionsCents = BigDecimal.valueOf(distributions(client, security, year, converter).getAmount());
 
+        // the cap uses the year-end redemption price, i.e. the last price of the
+        // year (on-or-before Dec 31)
         BigDecimal capCents = null;
-        var perShareEnd = perShareInTermCurrency(security, yearEnd, converter, warnings, false);
-        if (perShareEnd != null)
+        SecurityPrice endPrice = security.getSecurityPrice(yearEnd);
+        if (endPrice.getValue() == 0)
+            warnings.add(MessageFormat.format("Missing year-end price for {0}", security.getName()));
+        else
         {
+            var perShareEnd = toTermCurrency(security, endPrice, converter);
             var totalSharesDec = BigDecimal.valueOf(totalShares).movePointLeft(Values.Share.precision());
             var yearEndValueCents = BigDecimal.valueOf(perShareEnd.getAmount()).multiply(totalSharesDec);
             capCents = yearEndValueCents.subtract(yearStartValueCents).add(distributionsCents).max(BigDecimal.ZERO);
@@ -140,22 +153,31 @@ public final class VorabpauschaleCalculator
         return contributions;
     }
 
-    private static Money perShareInTermCurrency(Security security, LocalDate date, CurrencyConverter converter,
-                    List<String> warnings, boolean isYearStart)
+    /**
+     * Returns the first stored price whose date falls within the target year —
+     * the redemption price the Vorabpauschale base value is derived from.
+     * Returns {@code null} when the security has no price within the year.
+     */
+    private static SecurityPrice firstPriceInYear(Security security, LocalDate yearStart, LocalDate yearEnd)
     {
-        // getSecurityPrice returns a 0-value price when no data exists
-        SecurityPrice price = security.getSecurityPrice(date);
-        if (price.getValue() == 0)
-        {
-            warnings.add(MessageFormat.format(
-                            isYearStart ? "Missing year-start price for {0}" : "Missing year-end price for {0}",
-                            security.getName()));
+        List<SecurityPrice> prices = security.getPrices();
+        int index = Collections.binarySearch(prices, new SecurityPrice(yearStart, 0));
+        // exact hit on Jan 1 -> use it; otherwise the insertion point is the
+        // first price after Jan 1
+        int first = index >= 0 ? index : -index - 1;
+        if (first >= prices.size())
             return null;
-        }
+        SecurityPrice price = prices.get(first);
+        return price.getDate().isAfter(yearEnd) ? null : price;
+    }
+
+    private static Money toTermCurrency(Security security, SecurityPrice price, CurrencyConverter converter)
+    {
         long cents = BigDecimal.valueOf(price.getValue()).movePointLeft(Values.Quote.precisionDeltaToMoney())
                         .setScale(0, RoundingMode.HALF_UP).longValue();
         var inSecurityCcy = Money.of(security.getCurrencyCode(), cents);
-        return converter.convert(date, inSecurityCcy);
+        // convert on the price's own date so the FX rate matches the quote
+        return converter.convert(price.getDate(), inSecurityCcy);
     }
 
     private static Money distributions(Client client, Security security, int year, CurrencyConverter converter)
