@@ -2,6 +2,7 @@ package name.abuchen.portfolio.datatransfer.csv.exporter;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.equalTo;
 
 import java.io.File;
 import java.math.BigDecimal;
@@ -36,9 +37,9 @@ public class VorabpauschaleCSVExporterTest
         List<LotContribution> lots = new ArrayList<>();
         lots.add(lot);
         VorabpauschaleResult result = new VorabpauschaleResult(security, 2024, new BigDecimal("0.70"),
-                        Money.of("EUR", 10_000_00), Money.of("EUR", 0), Money.of("EUR", 147_58),
-                        Money.of("EUR", 147_58), Money.of("EUR", 147_58), Money.of("EUR", 103_31), lots,
-                        new ArrayList<>());
+                        Money.of("EUR", 100_00), Money.of("EUR", 10_000_00), Money.of("EUR", 0),
+                        Money.of("EUR", 147_58), Money.of("EUR", 147_58), Money.of("EUR", 147_58),
+                        Money.of("EUR", 103_31), lots, new ArrayList<>());
 
         File file = File.createTempFile("vorab", ".csv");
         file.deleteOnExit();
@@ -50,8 +51,40 @@ public class VorabpauschaleCSVExporterTest
         // separator and Values.Amount.format is locale-dependent.
         assertThat(content, containsString("Security"));      // header
         assertThat(content, containsString("Month bought"));  // header
+        assertThat(content, containsString("Price per share (year start)")); // header
         assertThat(content, containsString("TestFund"));
         assertThat(content, containsString("IE00TEST0001"));
+    }
+
+    @Test
+    public void testExportVorabpauschaleCombinesCarriedLots() throws Exception
+    {
+        Security security = new Security();
+        security.setName("TestFund");
+        security.setIsin("IE00TEST0001");
+
+        // two lots bought before the target year (2024) plus one bought within it;
+        // the two carried lots must collapse into a single lump-sum row
+        List<LotContribution> lots = new ArrayList<>();
+        lots.add(new LotContribution(LocalDate.of(2022, 5, 1), 50_00000000L, Money.of("EUR", 5_000_00),
+                        BigDecimal.ONE, Money.of("EUR", 88_55), Money.of("EUR", 88_55)));
+        lots.add(new LotContribution(LocalDate.of(2023, 8, 1), 50_00000000L, Money.of("EUR", 5_000_00),
+                        BigDecimal.ONE, Money.of("EUR", 88_55), Money.of("EUR", 88_55)));
+        lots.add(new LotContribution(LocalDate.of(2024, 3, 10), 100_00000000L, Money.of("EUR", 10_000_00),
+                        new BigDecimal("0.8333333333"), Money.of("EUR", 147_58), Money.of("EUR", 147_58)));
+
+        VorabpauschaleResult result = new VorabpauschaleResult(security, 2024, new BigDecimal("0.70"),
+                        Money.of("EUR", 100_00), Money.of("EUR", 20_000_00), Money.of("EUR", 0),
+                        Money.of("EUR", 324_68), Money.of("EUR", 324_68), Money.of("EUR", 324_68),
+                        Money.of("EUR", 227_28), lots, new ArrayList<>());
+
+        File file = File.createTempFile("vorab", ".csv");
+        file.deleteOnExit();
+        new CSVExporter().exportVorabpauschale(file, List.of(result));
+
+        long dataRows = Files.readAllLines(file.toPath()).stream().filter(l -> l.contains("TestFund")).count();
+        // one combined carried row + one current-year row
+        assertThat(Long.valueOf(dataRows), equalTo(Long.valueOf(2)));
     }
 
     @Test

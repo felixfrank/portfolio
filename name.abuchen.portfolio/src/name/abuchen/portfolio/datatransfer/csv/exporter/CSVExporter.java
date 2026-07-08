@@ -328,30 +328,61 @@ public class CSVExporter
         try (var printer = new CSVPrinter(new OutputStreamWriter(new FileOutputStream(file), StandardCharsets.UTF_8),
                         STRATEGY))
         {
-            printer.printRecord("Security", "ISIN", "Year", "Month bought", "Shares", "Base value", "Basisertrag",
-                            "Vorabpauschale", "Teilfreistellung", "Taxable");
+            printer.printRecord("Security", "ISIN", "Year", "Month bought", "Shares", "Price per share (year start)",
+                            "Base value", "Basisertrag", "Vorabpauschale", "Teilfreistellung", "Taxable");
 
             for (VorabpauschaleResult result : results)
             {
                 var securityName = result.getSecurity() != null ? result.getSecurity().getName() : "";
                 var isin = result.getSecurity() != null ? escapeNull(result.getSecurity().getIsin()) : "";
                 var factor = result.getTeilfreistellungFactor();
+                var perShare = Values.Amount.format(result.getPerShareYearStart().getAmount());
+
+                // lots bought before the target year all share the same treatment
+                // (full-year time factor, same year-start base) and are combined
+                // into a single lump-sum row; lots bought within the year keep
+                // their individual month
+                long carriedShares = 0;
+                long carriedBaseValue = 0;
+                long carriedBasisertrag = 0;
+                long carriedContribution = 0;
+                boolean hasCarried = false;
+
                 for (LotContribution lot : result.getLots())
                 {
-                    var monthBought = lot.getPurchaseDate().getYear() == result.getYear()
-                                    ? Integer.toString(lot.getPurchaseDate().getMonthValue())
-                                    : "";
-                    long taxable = new java.math.BigDecimal(lot.getContribution().getAmount()).multiply(factor)
-                                    .setScale(0, java.math.RoundingMode.HALF_UP).longValue();
-                    printer.printRecord(securityName, isin, Integer.toString(result.getYear()), monthBought,
-                                    Values.Share.format(lot.getShares()),
-                                    Values.Amount.format(lot.getBaseValue().getAmount()),
-                                    Values.Amount.format(lot.getBasisertrag().getAmount()),
-                                    Values.Amount.format(lot.getContribution().getAmount()),
-                                    factor.toPlainString(), Values.Amount.format(taxable));
+                    if (lot.getPurchaseDate().getYear() == result.getYear())
+                    {
+                        printVorabpauschaleRow(printer, securityName, isin, result.getYear(),
+                                        Integer.toString(lot.getPurchaseDate().getMonthValue()), lot.getShares(),
+                                        perShare, lot.getBaseValue().getAmount(), lot.getBasisertrag().getAmount(),
+                                        lot.getContribution().getAmount(), factor);
+                    }
+                    else
+                    {
+                        hasCarried = true;
+                        carriedShares += lot.getShares();
+                        carriedBaseValue += lot.getBaseValue().getAmount();
+                        carriedBasisertrag += lot.getBasisertrag().getAmount();
+                        carriedContribution += lot.getContribution().getAmount();
+                    }
                 }
+
+                if (hasCarried)
+                    printVorabpauschaleRow(printer, securityName, isin, result.getYear(), "", carriedShares, perShare,
+                                    carriedBaseValue, carriedBasisertrag, carriedContribution, factor);
             }
         }
+    }
+
+    private static void printVorabpauschaleRow(CSVPrinter printer, String securityName, String isin, int year,
+                    String monthBought, long shares, String perShare, long baseValue, long basisertrag,
+                    long contribution, java.math.BigDecimal factor) throws IOException
+    {
+        long taxable = new java.math.BigDecimal(contribution).multiply(factor)
+                        .setScale(0, java.math.RoundingMode.HALF_UP).longValue();
+        printer.printRecord(securityName, isin, Integer.toString(year), monthBought, Values.Share.format(shares),
+                        perShare, Values.Amount.format(baseValue), Values.Amount.format(basisertrag),
+                        Values.Amount.format(contribution), factor.toPlainString(), Values.Amount.format(taxable));
     }
 
     public void exportGermanTaxGains(File file, GermanTaxGainResult result,

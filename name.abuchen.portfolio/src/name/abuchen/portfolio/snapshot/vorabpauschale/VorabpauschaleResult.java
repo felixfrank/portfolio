@@ -14,6 +14,7 @@ public final class VorabpauschaleResult
     private final Security security;
     private final int year;
     private final BigDecimal teilfreistellungFactor;
+    private final Money perShareYearStart;
     private final Money yearStartValue;
     private final Money distributions;
     private final Money grossBasisertrag;
@@ -23,13 +24,14 @@ public final class VorabpauschaleResult
     private final List<LotContribution> lots;
     private final List<String> warnings;
 
-    public VorabpauschaleResult(Security security, int year, BigDecimal teilfreistellungFactor, Money yearStartValue,
-                    Money distributions, Money grossBasisertrag, Money cappedBasisertrag, Money vorabpauschale,
-                    Money taxable, List<LotContribution> lots, List<String> warnings)
+    public VorabpauschaleResult(Security security, int year, BigDecimal teilfreistellungFactor, Money perShareYearStart,
+                    Money yearStartValue, Money distributions, Money grossBasisertrag, Money cappedBasisertrag,
+                    Money vorabpauschale, Money taxable, List<LotContribution> lots, List<String> warnings)
     {
         this.security = security;
         this.year = year;
         this.teilfreistellungFactor = teilfreistellungFactor;
+        this.perShareYearStart = perShareYearStart;
         this.yearStartValue = yearStartValue;
         this.distributions = distributions;
         this.grossBasisertrag = grossBasisertrag;
@@ -51,6 +53,10 @@ public final class VorabpauschaleResult
     public BigDecimal getTeilfreistellungFactor()
     {
         return teilfreistellungFactor;
+    }
+    public Money getPerShareYearStart()
+    {
+        return perShareYearStart;
     }
     public Money getYearStartValue()
     {

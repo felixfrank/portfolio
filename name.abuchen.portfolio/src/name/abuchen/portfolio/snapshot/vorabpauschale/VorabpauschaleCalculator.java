@@ -100,9 +100,9 @@ public final class VorabpauschaleCalculator
         var contributions = buildContributions(eur, lots, lotBaseValue, lotTimeFactor, lotBasisertrag, grossCents,
                         vorabCents, vorabpauschale.getAmount());
 
-        return new VorabpauschaleResult(security, year, teilfreistellungFactor, money(eur, yearStartValueCents),
-                        money(eur, distributionsCents), money(eur, grossCents), money(eur, cappedCents),
-                        vorabpauschale, money(eur, taxableCents), contributions, warnings);
+        return new VorabpauschaleResult(security, year, teilfreistellungFactor, perShareStart,
+                        money(eur, yearStartValueCents), money(eur, distributionsCents), money(eur, grossCents),
+                        money(eur, cappedCents), vorabpauschale, money(eur, taxableCents), contributions, warnings);
     }
 
     /**
@@ -183,7 +183,7 @@ public final class VorabpauschaleCalculator
                     String eur, List<String> warnings)
     {
         var z = Money.of(eur, 0);
-        return new VorabpauschaleResult(security, year, teilfreistellungFactor, z, z, z, z, z, z, new ArrayList<>(),
+        return new VorabpauschaleResult(security, year, teilfreistellungFactor, z, z, z, z, z, z, z, new ArrayList<>(),
                         warnings);
     }
 }
