@@ -45,6 +45,30 @@ public class OpenLotsResolverTest
     }
 
     @Test
+    public void testSaleInOtherPortfolioDoesNotConsumeForeignLots()
+    {
+        // a fungible security traded independently in a second portfolio: the
+        // round-trip nets to zero and must not consume the long-term lot of the
+        // first portfolio (pooled FIFO would have aged-down the holding)
+        Client client = new Client();
+        Security security = new SecurityBuilder("EUR").addTo(client);
+
+        new PortfolioBuilder().buy(security, "2022-06-01", 100 * SHARE, 10_000_00).addTo(client);
+        new PortfolioBuilder() //
+                        .buy(security, "2025-05-01", 50 * SHARE, 6_000_00) //
+                        .sell(security, "2025-09-01", 50 * SHARE, 6_500_00) //
+                        .addTo(client);
+
+        List<OpenLot> lots = OpenLotsResolver.resolve(client, security, LocalDate.of(2025, 12, 31));
+
+        long total = lots.stream().mapToLong(OpenLot::getShares).sum();
+        assertThat(total, is(100 * SHARE));
+        assertThat(lots.size(), is(1));
+        assertThat(lots.get(0).getShares(), is(100 * SHARE));
+        assertThat(lots.get(0).getPurchase().getDateTime().toLocalDate(), is(LocalDate.of(2022, 6, 1)));
+    }
+
+    @Test
     public void testTransfersPreserveOriginalLot()
     {
         Client client = new Client();
