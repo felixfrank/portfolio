@@ -70,6 +70,31 @@ public class VorabpauschaleCalculatorTest
     }
 
     @Test
+    public void testCapBindsBeforeTwelfths()
+    {
+        // A unit bought in October (time factor 3/12) whose fund barely rose over
+        // the year: the Mehrbetrag cap must be applied to the FULL-year Basisertrag
+        // first and only then reduced by the Zwölftelung. Applying the full-year cap
+        // to the already time-reduced Basisertrag would let it under-bind.
+        Client client = new Client();
+        Security security = new SecurityBuilder("EUR") //
+                        .addPrice("2025-01-01", Values.Quote.factorize(100.00)) //
+                        .addPrice("2025-12-31", Values.Quote.factorize(101.00)) //
+                        .addTo(client);
+        new PortfolioBuilder().buy(security, "2025-10-01", 100 * SHARE, 10_000_00).addTo(client);
+
+        VorabpauschaleResult r = VorabpauschaleCalculator.compute(client, security, 2025,
+                        new BigDecimal("2.53"), BigDecimal.ONE, eur);
+
+        // full Basisertrag = 10000 * 0.0253 * 0.70 = 177.10 (reported time-weighted: * 3/12 = 44.28)
+        assertThat(r.getGrossBasisertrag(), is(Money.of("EUR", 44_28)));
+        // Mehrbetrag cap = 100sh * (101 - 100) = 100.00; capped full Basisertrag = 100.00,
+        // then * 3/12 = 25.00 (NOT min(44.28, 100.00) = 44.28)
+        assertThat(r.getCappedBasisertrag(), is(Money.of("EUR", 25_00)));
+        assertThat(r.getVorabpauschale(), is(Money.of("EUR", 25_00)));
+    }
+
+    @Test
     public void testMidYearPurchaseReducedByTwelfths()
     {
         Client client = new Client();

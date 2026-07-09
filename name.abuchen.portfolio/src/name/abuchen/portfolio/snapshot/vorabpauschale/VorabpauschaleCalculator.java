@@ -60,6 +60,7 @@ public final class VorabpauschaleCalculator
         List<BigDecimal> lotBaseValue = new ArrayList<>();
         List<BigDecimal> lotTimeFactor = new ArrayList<>();
         var grossCents = BigDecimal.ZERO;
+        var grossFullCents = BigDecimal.ZERO;
         var yearStartValueCents = BigDecimal.ZERO;
 
         for (var lot : lots)
@@ -79,13 +80,14 @@ public final class VorabpauschaleCalculator
                 timeFactor = BigDecimal.valueOf(13L - pMonth).divide(BigDecimal.valueOf(12), 10, RoundingMode.HALF_UP);
             }
 
-            var basisertrag = baseValueCents.multiply(basiszins).multiply(BASISERTRAG_FACTOR)
-                            .multiply(timeFactor);
+            var basisertragFull = baseValueCents.multiply(basiszins).multiply(BASISERTRAG_FACTOR);
+            var basisertrag = basisertragFull.multiply(timeFactor);
 
             lotBaseValue.add(baseValueCents);
             lotTimeFactor.add(timeFactor);
             lotBasisertrag.add(basisertrag);
             grossCents = grossCents.add(basisertrag);
+            grossFullCents = grossFullCents.add(basisertragFull);
             yearStartValueCents = yearStartValueCents.add(baseValueCents);
         }
 
@@ -105,7 +107,19 @@ public final class VorabpauschaleCalculator
             capCents = yearEndValueCents.subtract(yearStartValueCents).add(distributionsCents).max(BigDecimal.ZERO);
         }
 
-        var cappedCents = capCents == null ? grossCents : grossCents.min(capCents);
+        // §18 InvStG caps the Basisertrag at the Mehrbetrag (year's value increase
+        // plus distributions); the Zwölftelung reduction for units acquired during
+        // the year is applied afterwards. We therefore cap the *full-year*
+        // Basisertrag and only then scale it down by the time-weighted / full-year
+        // ratio. Applying the (full-year) cap to an already time-reduced Basisertrag
+        // would let the cap under-bind for mid-year purchases and overstate the
+        // Vorabpauschale. The distributions are deducted after the time scaling, as
+        // before.
+        var cappedFullCents = capCents == null ? grossFullCents : grossFullCents.min(capCents);
+
+        var timeRatio = grossFullCents.signum() == 0 ? BigDecimal.ZERO
+                        : grossCents.divide(grossFullCents, 12, RoundingMode.HALF_UP);
+        var cappedCents = cappedFullCents.multiply(timeRatio);
         var vorabCents = cappedCents.subtract(distributionsCents).max(BigDecimal.ZERO);
         var taxableCents = vorabCents.multiply(teilfreistellungFactor);
 
