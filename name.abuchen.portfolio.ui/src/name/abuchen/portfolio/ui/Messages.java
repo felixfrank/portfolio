@@ -993,6 +993,9 @@ public class Messages extends NLS
     public static String LabelVolatility;
     public static String LabelVorabpauschale;
     public static String LabelVorabpauschaleBasiszins;
+    public static String LabelVorabpauschaleFinalizedNone;
+    public static String LabelVorabpauschaleFinalizedYears;
+    public static String LabelVorabpauschaleReplaceConfirm;
     public static String LabelVorabpauschaleYear;
     public static String LabelWatchlist;
     public static String LabelWeeksAgo;

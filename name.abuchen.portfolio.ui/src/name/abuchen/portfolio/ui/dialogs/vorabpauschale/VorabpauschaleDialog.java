@@ -3,10 +3,16 @@ package name.abuchen.portfolio.ui.dialogs.vorabpauschale;
 import java.io.File;
 import java.io.IOException;
 import java.math.BigDecimal;
+import java.text.MessageFormat;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.SortedSet;
+import java.util.TreeSet;
+import java.util.stream.Collectors;
 
 import org.eclipse.jface.dialogs.Dialog;
 import org.eclipse.jface.dialogs.MessageDialog;
@@ -34,6 +40,7 @@ import name.abuchen.portfolio.model.Client;
 import name.abuchen.portfolio.model.Security;
 import name.abuchen.portfolio.model.VorabpauschaleEntry;
 import name.abuchen.portfolio.money.CurrencyConverter;
+import name.abuchen.portfolio.money.Money;
 import name.abuchen.portfolio.money.Values;
 import name.abuchen.portfolio.snapshot.vorabpauschale.TeilfreistellungFactor;
 import name.abuchen.portfolio.snapshot.vorabpauschale.VorabpauschaleCalculator;
@@ -49,6 +56,7 @@ public class VorabpauschaleDialog extends Dialog
 
     private Spinner yearSpinner;
     private Text basiszinsText;
+    private Label finalizedLabel;
     private TableViewer tableViewer;
     private final List<VorabpauschaleResult> results = new ArrayList<>();
     private BigDecimal lastBasiszins;
@@ -99,6 +107,10 @@ public class VorabpauschaleDialog extends Dialog
         Button recompute = new Button(container, SWT.PUSH);
         recompute.setText(Messages.LabelRecompute);
         recompute.addListener(SWT.Selection, e -> recompute());
+
+        finalizedLabel = new Label(container, SWT.NONE);
+        GridDataFactory.fillDefaults().span(5, 1).grab(true, false).applyTo(finalizedLabel);
+        refreshFinalizedLabel();
 
         Composite tableArea = new Composite(container, SWT.NONE);
         GridDataFactory.fillDefaults().span(5, 1).grab(true, true).applyTo(tableArea);
@@ -205,6 +217,18 @@ public class VorabpauschaleDialog extends Dialog
         if (results.isEmpty())
             return;
         int year = yearSpinner.getSelection();
+
+        List<VorabpauschaleEntry> existing = client.getVorabpauschaleEntries().stream()
+                        .filter(e -> e.getYear() == year).collect(Collectors.toList());
+        if (!existing.isEmpty())
+        {
+            boolean replace = MessageDialog.openConfirm(getShell(), Messages.LabelVorabpauschale,
+                            MessageFormat.format(Messages.LabelVorabpauschaleReplaceConfirm, year, existing.size()));
+            if (!replace)
+                return;
+            existing.forEach(client::removeVorabpauschaleEntry);
+        }
+
         BigDecimal basiszins = lastBasiszins != null ? lastBasiszins : BigDecimal.ZERO;
         for (VorabpauschaleResult r : results)
         {
@@ -213,7 +237,60 @@ public class VorabpauschaleDialog extends Dialog
                             r.getCappedBasisertrag(), r.getVorabpauschale(), r.getTaxable(), Instant.now()));
         }
         markDirty.run();
+        refreshFinalizedLabel();
         MessageDialog.openInformation(getShell(), Messages.LabelVorabpauschale, Messages.LabelFinalizeYear);
+    }
+
+    private void refreshFinalizedLabel()
+    {
+        List<VorabpauschaleEntry> entries = client.getVorabpauschaleEntries();
+        SortedSet<Integer> years = new TreeSet<>();
+        for (VorabpauschaleEntry e : entries)
+            years.add(e.getYear());
+
+        if (years.isEmpty())
+        {
+            finalizedLabel.setText(Messages.LabelVorabpauschaleFinalizedNone);
+            finalizedLabel.setToolTipText(null);
+        }
+        else
+        {
+            String list = years.stream().map(String::valueOf).collect(Collectors.joining(", "));
+            finalizedLabel.setText(MessageFormat.format(Messages.LabelVorabpauschaleFinalizedYears, list));
+            finalizedLabel.setToolTipText(buildFinalizedTooltip(entries, years));
+        }
+        finalizedLabel.requestLayout();
+    }
+
+    private String buildFinalizedTooltip(List<VorabpauschaleEntry> entries, SortedSet<Integer> years)
+    {
+        StringBuilder sb = new StringBuilder();
+        for (Integer year : years)
+        {
+            Money vorab = null;
+            Money taxable = null;
+            BigDecimal basiszins = null;
+            Instant finalizedAt = null;
+            for (VorabpauschaleEntry e : entries)
+            {
+                if (e.getYear() != year)
+                    continue;
+                vorab = vorab == null ? e.getVorabpauschale() : vorab.add(e.getVorabpauschale());
+                taxable = taxable == null ? e.getTaxable() : taxable.add(e.getTaxable());
+                basiszins = e.getBasiszins();
+                if (finalizedAt == null || e.getFinalizedAt().isAfter(finalizedAt))
+                    finalizedAt = e.getFinalizedAt();
+            }
+            if (sb.length() > 0)
+                sb.append('\n');
+            sb.append(year).append(" — ").append(Messages.VorabpauschaleColumnVorabpauschale).append(' ')
+                            .append(Values.Money.format(vorab)).append(", ").append(Messages.VorabpauschaleColumnTaxable)
+                            .append(' ').append(Values.Money.format(taxable)).append(", ")
+                            .append(Messages.LabelVorabpauschaleBasiszins).append(' ').append(basiszins)
+                            .append(", ").append(Values.DateTime.format(
+                                            LocalDateTime.ofInstant(finalizedAt, ZoneId.systemDefault())));
+        }
+        return sb.toString();
     }
 
     private void exportCsv()

@@ -2,7 +2,11 @@ package name.abuchen.portfolio.ui.dialogs.vorabpauschale;
 
 import java.io.File;
 import java.io.IOException;
+import java.text.MessageFormat;
 import java.time.LocalDate;
+import java.util.SortedSet;
+import java.util.TreeSet;
+import java.util.stream.Collectors;
 
 import org.eclipse.jface.dialogs.Dialog;
 import org.eclipse.jface.dialogs.MessageDialog;
@@ -84,6 +88,17 @@ public class GermanTaxGainsDialog extends Dialog
         Button recompute = new Button(container, SWT.PUSH);
         recompute.setText(Messages.LabelRecompute);
         recompute.addListener(SWT.Selection, e -> recompute());
+
+        Label finalizedLabel = new Label(container, SWT.NONE);
+        GridDataFactory.fillDefaults().span(3, 1).grab(true, false).applyTo(finalizedLabel);
+        SortedSet<Integer> finalizedYears = new TreeSet<>();
+        for (var e : client.getVorabpauschaleEntries())
+            finalizedYears.add(e.getYear());
+        if (finalizedYears.isEmpty())
+            finalizedLabel.setText(Messages.LabelVorabpauschaleFinalizedNone);
+        else
+            finalizedLabel.setText(MessageFormat.format(Messages.LabelVorabpauschaleFinalizedYears,
+                            finalizedYears.stream().map(String::valueOf).collect(Collectors.joining(", "))));
 
         Composite tableArea = new Composite(container, SWT.NONE);
         GridDataFactory.fillDefaults().span(3, 1).grab(true, true).applyTo(tableArea);
