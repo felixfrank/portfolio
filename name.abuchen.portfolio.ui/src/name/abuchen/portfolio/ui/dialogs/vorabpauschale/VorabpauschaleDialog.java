@@ -21,11 +21,13 @@ import org.eclipse.jface.layout.GridLayoutFactory;
 import org.eclipse.jface.layout.TableColumnLayout;
 import org.eclipse.jface.viewers.ArrayContentProvider;
 import org.eclipse.jface.viewers.ColumnLabelProvider;
+import org.eclipse.jface.viewers.ColumnViewerToolTipSupport;
 import org.eclipse.jface.viewers.ColumnWeightData;
 import org.eclipse.jface.viewers.TableViewer;
 import org.eclipse.jface.viewers.TableViewerColumn;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.widgets.Button;
+import org.eclipse.swt.widgets.Combo;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Control;
 import org.eclipse.swt.widgets.FileDialog;
@@ -56,6 +58,7 @@ public class VorabpauschaleDialog extends Dialog
 
     private Spinner yearSpinner;
     private Text basiszinsText;
+    private Combo churchCombo;
     private Label finalizedLabel;
     private TableViewer tableViewer;
     private final List<VorabpauschaleResult> results = new ArrayList<>();
@@ -108,6 +111,11 @@ public class VorabpauschaleDialog extends Dialog
         recompute.setText(Messages.LabelRecompute);
         recompute.addListener(SWT.Selection, e -> recompute());
 
+        Label churchLabel = new Label(container, SWT.NONE);
+        churchLabel.setText(Messages.LabelChurchTax);
+        churchCombo = ChurchTaxControls.createCombo(container);
+        churchCombo.addListener(SWT.Selection, e -> tableViewer.refresh());
+
         finalizedLabel = new Label(container, SWT.NONE);
         GridDataFactory.fillDefaults().span(5, 1).grab(true, false).applyTo(finalizedLabel);
         refreshFinalizedLabel();
@@ -122,6 +130,7 @@ public class VorabpauschaleDialog extends Dialog
         table.setHeaderVisible(true);
         table.setLinesVisible(true);
         tableViewer.setContentProvider(ArrayContentProvider.getInstance());
+        ColumnViewerToolTipSupport.enableFor(tableViewer);
 
         addColumn(layout, Messages.VorabpauschaleColumnSecurity, 200,
                         r -> r.getSecurity() != null ? r.getSecurity().getName() : "");
@@ -134,6 +143,7 @@ public class VorabpauschaleDialog extends Dialog
         addColumn(layout, Messages.VorabpauschaleColumnVorabpauschale, 120,
                         r -> Values.Money.format(r.getVorabpauschale()));
         addColumn(layout, Messages.VorabpauschaleColumnTaxable, 100, r -> Values.Money.format(r.getTaxable()));
+        addTaxColumn(layout, 100);
 
         tableViewer.setInput(results);
         return composite;
@@ -154,6 +164,29 @@ public class VorabpauschaleDialog extends Dialog
             public String getText(Object element)
             {
                 return text.apply((VorabpauschaleResult) element);
+            }
+        });
+        layout.setColumnData(column.getColumn(), new ColumnWeightData(weight));
+    }
+
+    private void addTaxColumn(TableColumnLayout layout, int weight)
+    {
+        TableViewerColumn column = new TableViewerColumn(tableViewer, SWT.NONE);
+        column.getColumn().setText(Messages.LabelColumnTotalTax);
+        column.setLabelProvider(new ColumnLabelProvider()
+        {
+            @Override
+            public String getText(Object element)
+            {
+                var r = (VorabpauschaleResult) element;
+                return ChurchTaxControls.totalTax(r.getTaxable(), ChurchTaxControls.rate(churchCombo));
+            }
+
+            @Override
+            public String getToolTipText(Object element)
+            {
+                var r = (VorabpauschaleResult) element;
+                return ChurchTaxControls.breakdownTooltip(r.getTaxable(), ChurchTaxControls.rate(churchCombo));
             }
         });
         layout.setColumnData(column.getColumn(), new ColumnWeightData(weight));
@@ -305,7 +338,7 @@ public class VorabpauschaleDialog extends Dialog
             return;
         try
         {
-            new CSVExporter().exportVorabpauschale(new File(path), results);
+            new CSVExporter().exportVorabpauschale(new File(path), results, ChurchTaxControls.rate(churchCombo));
         }
         catch (IOException e)
         {

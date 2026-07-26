@@ -15,11 +15,13 @@ import org.eclipse.jface.layout.GridLayoutFactory;
 import org.eclipse.jface.layout.TableColumnLayout;
 import org.eclipse.jface.viewers.ArrayContentProvider;
 import org.eclipse.jface.viewers.ColumnLabelProvider;
+import org.eclipse.jface.viewers.ColumnViewerToolTipSupport;
 import org.eclipse.jface.viewers.ColumnWeightData;
 import org.eclipse.jface.viewers.TableViewer;
 import org.eclipse.jface.viewers.TableViewerColumn;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.widgets.Button;
+import org.eclipse.swt.widgets.Combo;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Control;
 import org.eclipse.swt.widgets.FileDialog;
@@ -46,6 +48,7 @@ public class GermanTaxGainsDialog extends Dialog
     private final CurrencyConverter converter;
 
     private Spinner yearSpinner;
+    private Combo churchCombo;
     private TableViewer tableViewer;
     private GermanTaxGainResult result;
 
@@ -89,6 +92,15 @@ public class GermanTaxGainsDialog extends Dialog
         recompute.setText(Messages.LabelRecompute);
         recompute.addListener(SWT.Selection, e -> recompute());
 
+        Label churchLabel = new Label(container, SWT.NONE);
+        churchLabel.setText(Messages.LabelChurchTax);
+        churchCombo = ChurchTaxControls.createCombo(container);
+        churchCombo.addListener(SWT.Selection, e -> {
+            if (result != null)
+                tableViewer.refresh();
+        });
+        new Label(container, SWT.NONE); // filler to complete the row
+
         Label finalizedLabel = new Label(container, SWT.NONE);
         GridDataFactory.fillDefaults().span(3, 1).grab(true, false).applyTo(finalizedLabel);
         SortedSet<Integer> finalizedYears = new TreeSet<>();
@@ -110,6 +122,7 @@ public class GermanTaxGainsDialog extends Dialog
         table.setHeaderVisible(true);
         table.setLinesVisible(true);
         tableViewer.setContentProvider(ArrayContentProvider.getInstance());
+        ColumnViewerToolTipSupport.enableFor(tableViewer);
 
         addColumn(layout, Messages.GainsColumnSecurity, 200,
                         s -> s.getSecurity() != null ? s.getSecurity().getName() : "");
@@ -120,8 +133,32 @@ public class GermanTaxGainsDialog extends Dialog
         addColumn(layout, Messages.GainsColumnAccumulated, 140,
                         s -> Values.Money.format(s.getAccumulatedVorabpauschale()));
         addColumn(layout, Messages.GainsColumnTaxableGain, 110, s -> Values.Money.format(s.getTaxableGain()));
+        addTaxColumn(layout, 100);
 
         return composite;
+    }
+
+    private void addTaxColumn(TableColumnLayout layout, int weight)
+    {
+        TableViewerColumn column = new TableViewerColumn(tableViewer, SWT.NONE);
+        column.getColumn().setText(Messages.LabelColumnTotalTax);
+        column.setLabelProvider(new ColumnLabelProvider()
+        {
+            @Override
+            public String getText(Object element)
+            {
+                var sale = (SaleGain) element;
+                return ChurchTaxControls.totalTax(sale.getTaxableGain(), ChurchTaxControls.rate(churchCombo));
+            }
+
+            @Override
+            public String getToolTipText(Object element)
+            {
+                var sale = (SaleGain) element;
+                return ChurchTaxControls.breakdownTooltip(sale.getTaxableGain(), ChurchTaxControls.rate(churchCombo));
+            }
+        });
+        layout.setColumnData(column.getColumn(), new ColumnWeightData(weight));
     }
 
     private interface CellText
@@ -184,10 +221,11 @@ public class GermanTaxGainsDialog extends Dialog
             return;
         try
         {
+            var churchRate = ChurchTaxControls.rate(churchCombo);
             if (byAccount)
-                new CSVExporter().exportGermanTaxGainsByAccount(new File(path), result, Security::getName);
+                new CSVExporter().exportGermanTaxGainsByAccount(new File(path), result, Security::getName, churchRate);
             else
-                new CSVExporter().exportGermanTaxGains(new File(path), result, Security::getName);
+                new CSVExporter().exportGermanTaxGains(new File(path), result, Security::getName, churchRate);
         }
         catch (IOException e)
         {

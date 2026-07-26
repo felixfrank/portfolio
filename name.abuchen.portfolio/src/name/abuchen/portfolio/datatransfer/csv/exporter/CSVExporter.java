@@ -26,8 +26,10 @@ import name.abuchen.portfolio.model.SecurityPrice;
 import name.abuchen.portfolio.model.Transaction;
 import name.abuchen.portfolio.model.Transaction.Unit;
 import name.abuchen.portfolio.money.CurrencyConverter;
+import name.abuchen.portfolio.money.CurrencyUnit;
 import name.abuchen.portfolio.money.Money;
 import name.abuchen.portfolio.money.Values;
+import name.abuchen.portfolio.snapshot.vorabpauschale.GermanCapitalTax;
 import name.abuchen.portfolio.snapshot.vorabpauschale.GermanTaxGainResult;
 import name.abuchen.portfolio.snapshot.vorabpauschale.LotContribution;
 import name.abuchen.portfolio.snapshot.vorabpauschale.LotGain;
@@ -323,13 +325,15 @@ public class CSVExporter
         return prices;
     }
 
-    public void exportVorabpauschale(File file, List<VorabpauschaleResult> results) throws IOException
+    public void exportVorabpauschale(File file, List<VorabpauschaleResult> results, java.math.BigDecimal churchRate)
+                    throws IOException
     {
         try (var printer = new CSVPrinter(new OutputStreamWriter(new FileOutputStream(file), StandardCharsets.UTF_8),
                         STRATEGY))
         {
             printer.printRecord("Security", "ISIN", "Year", "Month bought", "Shares", "Price per share (year start)",
-                            "Base value", "Basisertrag", "Vorabpauschale", "Teilfreistellung", "Taxable");
+                            "Base value", "Basisertrag", "Vorabpauschale", "Teilfreistellung", "Taxable",
+                            "Abgeltungsteuer", "Soli", "Kirchensteuer", "Total tax");
 
             for (VorabpauschaleResult result : results)
             {
@@ -355,7 +359,7 @@ public class CSVExporter
                         printVorabpauschaleRow(printer, securityName, isin, result.getYear(),
                                         Integer.toString(lot.getPurchaseDate().getMonthValue()), lot.getShares(),
                                         perShare, lot.getBaseValue().getAmount(), lot.getBasisertrag().getAmount(),
-                                        lot.getContribution().getAmount(), factor);
+                                        lot.getContribution().getAmount(), factor, churchRate);
                     }
                     else
                     {
@@ -369,30 +373,37 @@ public class CSVExporter
 
                 if (hasCarried)
                     printVorabpauschaleRow(printer, securityName, isin, result.getYear(), "", carriedShares, perShare,
-                                    carriedBaseValue, carriedBasisertrag, carriedContribution, factor);
+                                    carriedBaseValue, carriedBasisertrag, carriedContribution, factor, churchRate);
             }
         }
     }
 
     private static void printVorabpauschaleRow(CSVPrinter printer, String securityName, String isin, int year,
                     String monthBought, long shares, String perShare, long baseValue, long basisertrag,
-                    long contribution, java.math.BigDecimal factor) throws IOException
+                    long contribution, java.math.BigDecimal factor, java.math.BigDecimal churchRate) throws IOException
     {
         long taxable = new java.math.BigDecimal(contribution).multiply(factor)
                         .setScale(0, java.math.RoundingMode.HALF_UP).longValue();
+        var tax = GermanCapitalTax.compute(Money.of(CurrencyUnit.EUR, taxable), churchRate);
         printer.printRecord(securityName, isin, Integer.toString(year), monthBought, Values.Share.format(shares),
                         perShare, Values.Amount.format(baseValue), Values.Amount.format(basisertrag),
-                        Values.Amount.format(contribution), factor.toPlainString(), Values.Amount.format(taxable));
+                        Values.Amount.format(contribution), factor.toPlainString(), Values.Amount.format(taxable),
+                        Values.Amount.format(tax.getKapitalertragsteuer().getAmount()),
+                        Values.Amount.format(tax.getSoli().getAmount()),
+                        Values.Amount.format(tax.getKirchensteuer().getAmount()),
+                        Values.Amount.format(tax.getTotal().getAmount()));
     }
 
     public void exportGermanTaxGains(File file, GermanTaxGainResult result,
-                    java.util.function.Function<Security, String> nameResolver) throws IOException
+                    java.util.function.Function<Security, String> nameResolver, java.math.BigDecimal churchRate)
+                    throws IOException
     {
         try (var printer = new CSVPrinter(new OutputStreamWriter(new FileOutputStream(file), StandardCharsets.UTF_8),
                         STRATEGY))
         {
             printer.printRecord("Security", "Account", "Sale date", "Purchase date", "Shares", "Proceeds", "Cost",
-                            "Accumulated Vorabpauschale", "Gain before exemption", "Taxable gain");
+                            "Accumulated Vorabpauschale", "Gain before exemption", "Taxable gain", "Abgeltungsteuer",
+                            "Soli", "Kirchensteuer", "Total tax");
 
             for (SaleGain sale : result.getSales())
             {
@@ -400,18 +411,28 @@ public class CSVExporter
                 String account = sale.getAccount() != null ? sale.getAccount().getName() : "";
                 for (LotGain lot : sale.getLots())
                 {
+                    var tax = GermanCapitalTax.compute(lot.getTaxableGain(), churchRate);
                     printer.printRecord(name, account, sale.getSaleDate().toString(), lot.getPurchaseDate().toString(),
                                     Values.Share.format(lot.getShares()),
                                     Values.Amount.format(lot.getProceeds().getAmount()),
                                     Values.Amount.format(lot.getCost().getAmount()),
                                     Values.Amount.format(lot.getAccumulatedVorabpauschale().getAmount()),
                                     Values.Amount.format(lot.getGainBeforeExemption().getAmount()),
-                                    Values.Amount.format(lot.getTaxableGain().getAmount()));
+                                    Values.Amount.format(lot.getTaxableGain().getAmount()),
+                                    Values.Amount.format(tax.getKapitalertragsteuer().getAmount()),
+                                    Values.Amount.format(tax.getSoli().getAmount()),
+                                    Values.Amount.format(tax.getKirchensteuer().getAmount()),
+                                    Values.Amount.format(tax.getTotal().getAmount()));
                 }
             }
 
+            var totalTax = GermanCapitalTax.compute(result.getTotalTaxableGain(), churchRate);
             printer.printRecord("TOTAL", "", "", "", "", "", "", "", "",
-                            Values.Amount.format(result.getTotalTaxableGain().getAmount()));
+                            Values.Amount.format(result.getTotalTaxableGain().getAmount()),
+                            Values.Amount.format(totalTax.getKapitalertragsteuer().getAmount()),
+                            Values.Amount.format(totalTax.getSoli().getAmount()),
+                            Values.Amount.format(totalTax.getKirchensteuer().getAmount()),
+                            Values.Amount.format(totalTax.getTotal().getAmount()));
         }
     }
 
@@ -421,13 +442,15 @@ public class CSVExporter
      * in the target year, with the amounts summed across all its sales.
      */
     public void exportGermanTaxGainsByAccount(File file, GermanTaxGainResult result,
-                    java.util.function.Function<Security, String> nameResolver) throws IOException
+                    java.util.function.Function<Security, String> nameResolver, java.math.BigDecimal churchRate)
+                    throws IOException
     {
         try (var printer = new CSVPrinter(new OutputStreamWriter(new FileOutputStream(file), StandardCharsets.UTF_8),
                         STRATEGY))
         {
             printer.printRecord("Security", "Account", "Shares", "Proceeds", "Cost", "Accumulated Vorabpauschale",
-                            "Gain before exemption", "Taxable gain");
+                            "Gain before exemption", "Taxable gain", "Abgeltungsteuer", "Soli", "Kirchensteuer",
+                            "Total tax");
 
             // preserve the encounter order of sales; key on (security, account)
             var groups = new java.util.LinkedHashMap<String, long[]>();
@@ -451,13 +474,23 @@ public class CSVExporter
             {
                 String[] label = labels.get(entry.getKey());
                 long[] sums = entry.getValue();
+                var tax = GermanCapitalTax.compute(Money.of(CurrencyUnit.EUR, sums[5]), churchRate);
                 printer.printRecord(label[0], label[1], Values.Share.format(sums[0]), Values.Amount.format(sums[1]),
                                 Values.Amount.format(sums[2]), Values.Amount.format(sums[3]),
-                                Values.Amount.format(sums[4]), Values.Amount.format(sums[5]));
+                                Values.Amount.format(sums[4]), Values.Amount.format(sums[5]),
+                                Values.Amount.format(tax.getKapitalertragsteuer().getAmount()),
+                                Values.Amount.format(tax.getSoli().getAmount()),
+                                Values.Amount.format(tax.getKirchensteuer().getAmount()),
+                                Values.Amount.format(tax.getTotal().getAmount()));
             }
 
+            var totalTax = GermanCapitalTax.compute(result.getTotalTaxableGain(), churchRate);
             printer.printRecord("TOTAL", "", "", "", "", "", "",
-                            Values.Amount.format(result.getTotalTaxableGain().getAmount()));
+                            Values.Amount.format(result.getTotalTaxableGain().getAmount()),
+                            Values.Amount.format(totalTax.getKapitalertragsteuer().getAmount()),
+                            Values.Amount.format(totalTax.getSoli().getAmount()),
+                            Values.Amount.format(totalTax.getKirchensteuer().getAmount()),
+                            Values.Amount.format(totalTax.getTotal().getAmount()));
         }
     }
 

@@ -992,6 +992,11 @@ public class Messages extends NLS
     public static String LabelViewTaxonomyDefinition;
     public static String LabelViewTreeMap;
     public static String LabelVolatility;
+    public static String LabelChurchTax;
+    public static String LabelChurchTax8;
+    public static String LabelChurchTax9;
+    public static String LabelChurchTaxNone;
+    public static String LabelColumnTotalTax;
     public static String LabelVorabpauschale;
     public static String LabelVorabpauschaleBasiszins;
     public static String LabelVorabpauschaleFinalizedNone;

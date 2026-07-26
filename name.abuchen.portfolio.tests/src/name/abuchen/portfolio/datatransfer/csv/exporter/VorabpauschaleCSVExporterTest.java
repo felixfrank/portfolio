@@ -16,6 +16,7 @@ import org.junit.Test;
 import name.abuchen.portfolio.model.Portfolio;
 import name.abuchen.portfolio.model.Security;
 import name.abuchen.portfolio.money.Money;
+import name.abuchen.portfolio.snapshot.vorabpauschale.GermanCapitalTax;
 import name.abuchen.portfolio.snapshot.vorabpauschale.GermanTaxGainResult;
 import name.abuchen.portfolio.snapshot.vorabpauschale.LotContribution;
 import name.abuchen.portfolio.snapshot.vorabpauschale.LotGain;
@@ -44,7 +45,7 @@ public class VorabpauschaleCSVExporterTest
 
         File file = File.createTempFile("vorab", ".csv");
         file.deleteOnExit();
-        new CSVExporter().exportVorabpauschale(file, List.of(result));
+        new CSVExporter().exportVorabpauschale(file, List.of(result), BigDecimal.ZERO);
 
         String content = Files.readString(file.toPath());
         // Assert only on locale-independent literals. Do NOT assert on formatted
@@ -81,7 +82,7 @@ public class VorabpauschaleCSVExporterTest
 
         File file = File.createTempFile("vorab", ".csv");
         file.deleteOnExit();
-        new CSVExporter().exportVorabpauschale(file, List.of(result));
+        new CSVExporter().exportVorabpauschale(file, List.of(result), BigDecimal.ZERO);
 
         long dataRows = Files.readAllLines(file.toPath()).stream().filter(l -> l.contains("TestFund")).count();
         // one combined carried row + one current-year row
@@ -108,13 +109,15 @@ public class VorabpauschaleCSVExporterTest
 
         File file = File.createTempFile("gains", ".csv");
         file.deleteOnExit();
-        new CSVExporter().exportGermanTaxGains(file, result, name -> "TestFund");
+        new CSVExporter().exportGermanTaxGains(file, result, name -> "TestFund", GermanCapitalTax.CHURCH_RATE_9);
 
         String content = Files.readString(file.toPath());
         // locale-independent assertions only (see Task 3 note)
         assertThat(content, containsString("Sale date"));                  // header
         assertThat(content, containsString("Account"));                    // header
         assertThat(content, containsString("Accumulated Vorabpauschale")); // header
+        assertThat(content, containsString("Kirchensteuer"));              // tax header
+        assertThat(content, containsString("Total tax"));                  // tax header
         assertThat(content, containsString("TestFund"));
         assertThat(content, containsString("Depot A"));                    // sale account
         assertThat(content, containsString("TOTAL"));                      // total row label
@@ -122,7 +125,7 @@ public class VorabpauschaleCSVExporterTest
         // per-account summary export
         File summary = File.createTempFile("gains-by-account", ".csv");
         summary.deleteOnExit();
-        new CSVExporter().exportGermanTaxGainsByAccount(summary, result, name -> "TestFund");
+        new CSVExporter().exportGermanTaxGainsByAccount(summary, result, name -> "TestFund", GermanCapitalTax.CHURCH_RATE_9);
         String summaryContent = Files.readString(summary.toPath());
         assertThat(summaryContent, containsString("Account"));
         assertThat(summaryContent, containsString("TestFund"));
