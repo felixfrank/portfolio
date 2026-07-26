@@ -13,6 +13,7 @@ import java.util.List;
 
 import org.junit.Test;
 
+import name.abuchen.portfolio.model.Portfolio;
 import name.abuchen.portfolio.model.Security;
 import name.abuchen.portfolio.money.Money;
 import name.abuchen.portfolio.snapshot.vorabpauschale.GermanTaxGainResult;
@@ -95,7 +96,9 @@ public class VorabpauschaleCSVExporterTest
                         Money.of("EUR", 2_822_90));
         List<LotGain> lots = new ArrayList<>();
         lots.add(lot);
-        SaleGain sale = new SaleGain(null, LocalDate.of(2025, 6, 1), 100_00000000L, Money.of("EUR", 13_000_00),
+        Portfolio account = new Portfolio();
+        account.setName("Depot A");
+        SaleGain sale = new SaleGain(null, account, LocalDate.of(2025, 6, 1), 100_00000000L, Money.of("EUR", 13_000_00),
                         Money.of("EUR", 10_000_00), Money.of("EUR", 177_10), Money.of("EUR", 2_822_90),
                         Money.of("EUR", 2_822_90), lots);
         List<SaleGain> sales = new ArrayList<>();
@@ -110,8 +113,20 @@ public class VorabpauschaleCSVExporterTest
         String content = Files.readString(file.toPath());
         // locale-independent assertions only (see Task 3 note)
         assertThat(content, containsString("Sale date"));                  // header
+        assertThat(content, containsString("Account"));                    // header
         assertThat(content, containsString("Accumulated Vorabpauschale")); // header
         assertThat(content, containsString("TestFund"));
+        assertThat(content, containsString("Depot A"));                    // sale account
         assertThat(content, containsString("TOTAL"));                      // total row label
+
+        // per-account summary export
+        File summary = File.createTempFile("gains-by-account", ".csv");
+        summary.deleteOnExit();
+        new CSVExporter().exportGermanTaxGainsByAccount(summary, result, name -> "TestFund");
+        String summaryContent = Files.readString(summary.toPath());
+        assertThat(summaryContent, containsString("Account"));
+        assertThat(summaryContent, containsString("TestFund"));
+        assertThat(summaryContent, containsString("Depot A"));
+        assertThat(summaryContent, containsString("TOTAL"));
     }
 }

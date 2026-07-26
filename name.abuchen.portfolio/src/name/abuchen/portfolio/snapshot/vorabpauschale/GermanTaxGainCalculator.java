@@ -3,17 +3,17 @@ package name.abuchen.portfolio.snapshot.vorabpauschale;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
-import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Deque;
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 
 import name.abuchen.portfolio.model.Client;
+import name.abuchen.portfolio.model.Portfolio;
 import name.abuchen.portfolio.model.PortfolioTransaction;
+import name.abuchen.portfolio.model.PortfolioTransferEntry;
 import name.abuchen.portfolio.model.Security;
 import name.abuchen.portfolio.model.TransactionPair;
 import name.abuchen.portfolio.money.CurrencyConverter;
@@ -28,6 +28,17 @@ import name.abuchen.portfolio.snapshot.trades.TradeCollector;
  * Vorabpauschale onto the then-open lots. Pure computation; no persistence, no
  * UI. All money is in the converter's term currency (EUR).
  *
+ * <p>
+ * FIFO is applied <em>per portfolio</em> (depot): a sale consumes lots of its
+ * own portfolio, and a transfer moves lots - preserving their original
+ * acquisition date, cost basis and accrued Vorabpauschale - from the source to
+ * the target portfolio. This matches how German brokers tax each depot
+ * separately (and carry the cost basis on a Depotübertrag), so the reported
+ * gain of a sale is attributable to the depot in which it occurred. The
+ * finalized Vorabpauschale is a single per-security amount per year and is
+ * distributed across all then-open lots regardless of depot.
+ *
+ * <p>
  * v1 conventions: proceeds and cost both use gross value (fees/taxes excluded);
  * Teilfreistellung is applied to the net gain, symmetrically to losses.
  */
@@ -40,11 +51,12 @@ public final class GermanTaxGainCalculator
         private long costCents;         // for the remaining shares
         private long accumulatedCents;  // Vorabpauschale accrued onto remaining shares
 
-        private Lot(PortfolioTransaction purchase, long costCents)
+        private Lot(PortfolioTransaction purchase, long remainingShares, long costCents, long accumulatedCents)
         {
             this.purchase = purchase;
-            this.remainingShares = purchase.getShares();
+            this.remainingShares = remainingShares;
             this.costCents = costCents;
+            this.accumulatedCents = accumulatedCents;
         }
     }
 
@@ -82,35 +94,39 @@ public final class GermanTaxGainCalculator
         List<TransactionPair<?>> all = security.getTransactions(client);
         Collections.sort(all, TradeCollector.BY_DATE_AND_TYPE);
 
-        // collect portfolio transactions up to year end, preserving sorted order
-        List<PortfolioTransaction> txs = new ArrayList<>();
+        // portfolio transactions up to year end, paired with their owning depot
+        List<TransactionPair<?>> pairs = new ArrayList<>();
         for (var pair : all)
         {
             if (pair.getTransaction() instanceof PortfolioTransaction tx
                             && !tx.getDateTime().toLocalDate().isAfter(yearEnd))
-                txs.add(tx);
+                pairs.add(pair);
         }
-        if (txs.isEmpty())
+        if (pairs.isEmpty())
             return Collections.emptyList();
 
         // ledger vorabpauschale (cents) per year for this security; ledger
         // amounts are always stored in the client base currency (EUR), the same
         // as the converter's term currency, so no conversion is needed here
-        Map<Integer, Long> ledgerByYear = new HashMap<>();
+        Map<Integer, Long> ledgerByYear = new LinkedHashMap<>();
         for (var e : client.getVorabpauschaleEntries())
         {
             if (e.getSecurity() == security)
                 ledgerByYear.put(e.getYear(), e.getVorabpauschale().getAmount());
         }
 
-        Deque<Lot> open = new ArrayDeque<>();
+        // open lots per depot; LinkedHashMap keeps a stable iteration order so
+        // the accrual allocation (last lot takes the rounding remainder) is
+        // deterministic across runs
+        Map<Portfolio, List<Lot>> open = new LinkedHashMap<>();
         List<SaleGain> result = new ArrayList<>();
 
         // start applying year-ends from the year of the first transaction
-        int nextYearEndToApply = txs.get(0).getDateTime().getYear();
+        int nextYearEndToApply = ((PortfolioTransaction) pairs.get(0).getTransaction()).getDateTime().getYear();
 
-        for (var tx : txs)
+        for (var pair : pairs)
         {
+            var tx = (PortfolioTransaction) pair.getTransaction();
             int txYear = tx.getDateTime().getYear();
 
             // apply year-end events for all past years before this transaction's year
@@ -124,18 +140,20 @@ public final class GermanTaxGainCalculator
             {
                 case BUY, DELIVERY_INBOUND:
                     long costCents = converter.convert(tx.getDateTime().toLocalDate(), tx.getGrossValue()).getAmount();
-                    open.addLast(new Lot(tx, costCents));
+                    lotsOf(open, (Portfolio) pair.getOwner()).add(new Lot(tx, tx.getShares(), costCents, 0));
                     break;
                 case SELL, DELIVERY_OUTBOUND:
                     boolean inTargetYear = txYear == year;
                     long proceedsCents = converter.convert(tx.getDateTime().toLocalDate(), tx.getGrossValue())
                                     .getAmount();
-                    consumeSale(open, tx, proceedsCents, inTargetYear, security, exemption, termCurrency, result,
-                                    warnings);
+                    consumeSale(lotsOf(open, (Portfolio) pair.getOwner()), (Portfolio) pair.getOwner(), tx,
+                                    proceedsCents, inTargetYear, security, exemption, termCurrency, result, warnings);
                     break;
-                case TRANSFER_IN, TRANSFER_OUT:
-                    // investor-level no-op; transfers between the investor's own
-                    // portfolios do not change the holding
+                case TRANSFER_IN:
+                    moveLots(open, pair, tx, converter, security, warnings);
+                    break;
+                case TRANSFER_OUT:
+                    // handled via the matching TRANSFER_IN
                     break;
                 default:
                     throw new UnsupportedOperationException(tx.getType().name());
@@ -145,15 +163,75 @@ public final class GermanTaxGainCalculator
         return result;
     }
 
-    private static void applyYearEnd(Deque<Lot> open, int yearZ, Map<Integer, Long> ledgerByYear)
+    private static List<Lot> lotsOf(Map<Portfolio, List<Lot>> open, Portfolio portfolio)
+    {
+        return open.computeIfAbsent(portfolio, p -> new ArrayList<>());
+    }
+
+    private static void moveLots(Map<Portfolio, List<Lot>> open, TransactionPair<?> pair, PortfolioTransaction tx,
+                    CurrencyConverter converter, Security security, List<String> warnings)
+    {
+        if (!(tx.getCrossEntry() instanceof PortfolioTransferEntry transfer))
+        {
+            // orphaned inbound transfer without a counterpart: treat the shares
+            // as a fresh inbound delivery so they are not silently dropped
+            long costCents = converter.convert(tx.getDateTime().toLocalDate(), tx.getGrossValue()).getAmount();
+            lotsOf(open, (Portfolio) pair.getOwner()).add(new Lot(tx, tx.getShares(), costCents, 0));
+            return;
+        }
+
+        Portfolio source = (Portfolio) transfer.getOwner(transfer.getSourceTransaction());
+        Portfolio target = (Portfolio) transfer.getOwner(transfer.getTargetTransaction());
+        List<Lot> from = lotsOf(open, source);
+        List<Lot> into = lotsOf(open, target);
+
+        // oldest lot first; transferred lots keep their original purchase (date,
+        // cost basis) and their accrued Vorabpauschale moves with them
+        from.sort((x, y) -> x.purchase.getDateTime().compareTo(y.purchase.getDateTime()));
+
+        long remaining = tx.getShares();
+        var it = from.iterator();
+        while (remaining > 0 && it.hasNext())
+        {
+            Lot lot = it.next();
+            if (lot.remainingShares <= remaining)
+            {
+                remaining -= lot.remainingShares;
+                into.add(new Lot(lot.purchase, lot.remainingShares, lot.costCents, lot.accumulatedCents));
+                it.remove();
+            }
+            else
+            {
+                long costTaken = fraction(lot.costCents, remaining, lot.remainingShares);
+                long accumTaken = fraction(lot.accumulatedCents, remaining, lot.remainingShares);
+                into.add(new Lot(lot.purchase, remaining, costTaken, accumTaken));
+                lot.costCents -= costTaken;
+                lot.accumulatedCents -= accumTaken;
+                lot.remainingShares -= remaining;
+                remaining = 0;
+            }
+        }
+        if (remaining > 0)
+            warnings.add("More shares transferred than held for " + security.getName() + " on "
+                            + Values.DateTime.format(tx.getDateTime()));
+    }
+
+    private static void applyYearEnd(Map<Portfolio, List<Lot>> open, int yearZ, Map<Integer, Long> ledgerByYear)
     {
         var vorabCents = ledgerByYear.get(yearZ);
-        if (vorabCents == null || open.isEmpty())
+        if (vorabCents == null)
+            return;
+
+        // flatten all open lots across depots; the finalized Vorabpauschale is a
+        // single per-security amount and is distributed across them all
+        List<Lot> lots = new ArrayList<>();
+        for (var depotLots : open.values())
+            lots.addAll(depotLots);
+        if (lots.isEmpty())
             return;
 
         // weight_i = remainingShares_i × timeFactor_i
         // timeFactor = 12 (full year) if purchased before yearZ, else 13 − purchaseMonth
-        List<Lot> lots = new ArrayList<>(open);
         List<BigDecimal> weights = new ArrayList<>();
         var totalWeight = BigDecimal.ZERO;
         for (var lot : lots)
@@ -186,17 +264,21 @@ public final class GermanTaxGainCalculator
         }
     }
 
-    private static void consumeSale(Deque<Lot> open, PortfolioTransaction sale, long proceedsCents,
+    private static void consumeSale(List<Lot> open, Portfolio account, PortfolioTransaction sale, long proceedsCents,
                     boolean inTargetYear, Security security, BigDecimal exemption, String termCurrency,
                     List<SaleGain> result, List<String> warnings)
     {
+        // consume this depot's own lots, oldest acquisition first
+        open.sort((x, y) -> x.purchase.getDateTime().compareTo(y.purchase.getDateTime()));
+
         long sharesToSell = sale.getShares();
         long totalShares = sharesToSell;
         List<LotGain> lotGains = new ArrayList<>();
 
-        while (sharesToSell > 0 && !open.isEmpty())
+        var it = open.iterator();
+        while (sharesToSell > 0 && it.hasNext())
         {
-            var lot = open.peekFirst();
+            var lot = it.next();
             long take = Math.min(sharesToSell, lot.remainingShares);
 
             // fraction of this lot consumed
@@ -223,7 +305,7 @@ public final class GermanTaxGainCalculator
             lot.remainingShares -= take;
             sharesToSell -= take;
             if (lot.remainingShares == 0)
-                open.removeFirst();
+                it.remove();
         }
 
         if (sharesToSell > 0)
@@ -238,7 +320,7 @@ public final class GermanTaxGainCalculator
             long accum = sum(lotGains, LotGain::getAccumulatedVorabpauschale);
             long gainBefore = sum(lotGains, LotGain::getGainBeforeExemption);
             long taxable = sum(lotGains, LotGain::getTaxableGain);
-            result.add(new SaleGain(security, sale.getDateTime().toLocalDate(), shares,
+            result.add(new SaleGain(security, account, sale.getDateTime().toLocalDate(), shares,
                             Money.of(termCurrency, proceeds), Money.of(termCurrency, cost),
                             Money.of(termCurrency, accum), Money.of(termCurrency, gainBefore),
                             Money.of(termCurrency, taxable), lotGains));

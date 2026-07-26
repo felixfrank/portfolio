@@ -718,6 +718,7 @@ public class Messages extends NLS
     public static String LabelExpandCurrentMonth;
     public static String LabelExpenses;
     public static String LabelExport;
+    public static String LabelExportGermanTaxGainsByAccount;
     public static String LabelFees;
     public static String LabelFeesAccumulated;
     public static String LabelFinalizeYear;

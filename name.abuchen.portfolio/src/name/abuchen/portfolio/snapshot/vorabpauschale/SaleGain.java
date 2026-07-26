@@ -5,6 +5,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
+import name.abuchen.portfolio.model.Portfolio;
 import name.abuchen.portfolio.model.Security;
 import name.abuchen.portfolio.money.Money;
 
@@ -12,6 +13,7 @@ import name.abuchen.portfolio.money.Money;
 public final class SaleGain
 {
     private final Security security;
+    private final Portfolio account;
     private final LocalDate saleDate;
     private final long shares;
     private final Money proceeds;
@@ -21,10 +23,11 @@ public final class SaleGain
     private final Money taxableGain;
     private final List<LotGain> lots;
 
-    public SaleGain(Security security, LocalDate saleDate, long shares, Money proceeds, Money cost,
+    public SaleGain(Security security, Portfolio account, LocalDate saleDate, long shares, Money proceeds, Money cost,
                     Money accumulatedVorabpauschale, Money gainBeforeExemption, Money taxableGain, List<LotGain> lots)
     {
         this.security = security;
+        this.account = account;
         this.saleDate = saleDate;
         this.shares = shares;
         this.proceeds = proceeds;
@@ -38,6 +41,12 @@ public final class SaleGain
     public Security getSecurity()
     {
         return security;
+    }
+
+    /** The portfolio (depot) in which the sale occurred. */
+    public Portfolio getAccount()
+    {
+        return account;
     }
     public LocalDate getSaleDate()
     {

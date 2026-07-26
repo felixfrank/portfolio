@@ -391,15 +391,16 @@ public class CSVExporter
         try (var printer = new CSVPrinter(new OutputStreamWriter(new FileOutputStream(file), StandardCharsets.UTF_8),
                         STRATEGY))
         {
-            printer.printRecord("Security", "Sale date", "Purchase date", "Shares", "Proceeds", "Cost",
+            printer.printRecord("Security", "Account", "Sale date", "Purchase date", "Shares", "Proceeds", "Cost",
                             "Accumulated Vorabpauschale", "Gain before exemption", "Taxable gain");
 
             for (SaleGain sale : result.getSales())
             {
                 String name = nameResolver.apply(sale.getSecurity());
+                String account = sale.getAccount() != null ? sale.getAccount().getName() : "";
                 for (LotGain lot : sale.getLots())
                 {
-                    printer.printRecord(name, sale.getSaleDate().toString(), lot.getPurchaseDate().toString(),
+                    printer.printRecord(name, account, sale.getSaleDate().toString(), lot.getPurchaseDate().toString(),
                                     Values.Share.format(lot.getShares()),
                                     Values.Amount.format(lot.getProceeds().getAmount()),
                                     Values.Amount.format(lot.getCost().getAmount()),
@@ -409,7 +410,53 @@ public class CSVExporter
                 }
             }
 
-            printer.printRecord("TOTAL", "", "", "", "", "", "", "",
+            printer.printRecord("TOTAL", "", "", "", "", "", "", "", "",
+                            Values.Amount.format(result.getTotalTaxableGain().getAmount()));
+        }
+    }
+
+    /**
+     * Exports the German taxable capital gains summarized per security and
+     * account (depot): one row for each (security, account) pair that had a sale
+     * in the target year, with the amounts summed across all its sales.
+     */
+    public void exportGermanTaxGainsByAccount(File file, GermanTaxGainResult result,
+                    java.util.function.Function<Security, String> nameResolver) throws IOException
+    {
+        try (var printer = new CSVPrinter(new OutputStreamWriter(new FileOutputStream(file), StandardCharsets.UTF_8),
+                        STRATEGY))
+        {
+            printer.printRecord("Security", "Account", "Shares", "Proceeds", "Cost", "Accumulated Vorabpauschale",
+                            "Gain before exemption", "Taxable gain");
+
+            // preserve the encounter order of sales; key on (security, account)
+            var groups = new java.util.LinkedHashMap<String, long[]>();
+            var labels = new java.util.HashMap<String, String[]>();
+            for (SaleGain sale : result.getSales())
+            {
+                String name = nameResolver.apply(sale.getSecurity());
+                String account = sale.getAccount() != null ? sale.getAccount().getName() : "";
+                String key = name + " " + account;
+                var sums = groups.computeIfAbsent(key, k -> new long[6]);
+                sums[0] += sale.getShares();
+                sums[1] += sale.getProceeds().getAmount();
+                sums[2] += sale.getCost().getAmount();
+                sums[3] += sale.getAccumulatedVorabpauschale().getAmount();
+                sums[4] += sale.getGainBeforeExemption().getAmount();
+                sums[5] += sale.getTaxableGain().getAmount();
+                labels.putIfAbsent(key, new String[] { name, account });
+            }
+
+            for (var entry : groups.entrySet())
+            {
+                String[] label = labels.get(entry.getKey());
+                long[] sums = entry.getValue();
+                printer.printRecord(label[0], label[1], Values.Share.format(sums[0]), Values.Amount.format(sums[1]),
+                                Values.Amount.format(sums[2]), Values.Amount.format(sums[3]),
+                                Values.Amount.format(sums[4]), Values.Amount.format(sums[5]));
+            }
+
+            printer.printRecord("TOTAL", "", "", "", "", "", "",
                             Values.Amount.format(result.getTotalTaxableGain().getAmount()));
         }
     }

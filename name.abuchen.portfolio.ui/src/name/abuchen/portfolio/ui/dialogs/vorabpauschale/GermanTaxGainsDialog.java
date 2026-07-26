@@ -113,6 +113,7 @@ public class GermanTaxGainsDialog extends Dialog
 
         addColumn(layout, Messages.GainsColumnSecurity, 200,
                         s -> s.getSecurity() != null ? s.getSecurity().getName() : "");
+        addColumn(layout, Messages.ColumnAccount, 120, s -> s.getAccount() != null ? s.getAccount().getName() : "");
         addColumn(layout, Messages.GainsColumnSaleDate, 90, s -> s.getSaleDate().toString());
         addColumn(layout, Messages.GainsColumnProceeds, 100, s -> Values.Money.format(s.getProceeds()));
         addColumn(layout, Messages.GainsColumnCost, 100, s -> Values.Money.format(s.getCost()));
@@ -155,6 +156,7 @@ public class GermanTaxGainsDialog extends Dialog
     protected void createButtonsForButtonBar(Composite parent)
     {
         createButton(parent, 2001, Messages.MenuExportData, false);
+        createButton(parent, 2002, Messages.LabelExportGermanTaxGainsByAccount, false);
         super.createButtonsForButtonBar(parent);
     }
 
@@ -162,24 +164,30 @@ public class GermanTaxGainsDialog extends Dialog
     protected void buttonPressed(int buttonId)
     {
         if (buttonId == 2001)
-            exportCsv();
+            exportCsv(false);
+        else if (buttonId == 2002)
+            exportCsv(true);
         else
             super.buttonPressed(buttonId);
     }
 
-    private void exportCsv()
+    private void exportCsv(boolean byAccount)
     {
         if (result == null || result.getSales().isEmpty())
             return;
         FileDialog dialog = new FileDialog(getShell(), SWT.SAVE);
-        dialog.setFileName("german-tax-gains-" + yearSpinner.getSelection() + ".csv"); //$NON-NLS-1$ //$NON-NLS-2$
+        String prefix = byAccount ? "german-tax-gains-by-account-" : "german-tax-gains-"; //$NON-NLS-1$ //$NON-NLS-2$
+        dialog.setFileName(prefix + yearSpinner.getSelection() + ".csv"); //$NON-NLS-1$
         dialog.setFilterExtensions(new String[] { "*.csv" }); //$NON-NLS-1$
         String path = dialog.open();
         if (path == null)
             return;
         try
         {
-            new CSVExporter().exportGermanTaxGains(new File(path), result, Security::getName);
+            if (byAccount)
+                new CSVExporter().exportGermanTaxGainsByAccount(new File(path), result, Security::getName);
+            else
+                new CSVExporter().exportGermanTaxGains(new File(path), result, Security::getName);
         }
         catch (IOException e)
         {

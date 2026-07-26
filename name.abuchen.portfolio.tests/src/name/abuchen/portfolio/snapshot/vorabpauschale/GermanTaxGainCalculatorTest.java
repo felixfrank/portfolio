@@ -8,10 +8,14 @@ import java.time.Instant;
 
 import org.junit.Test;
 
+import java.time.LocalDateTime;
+
 import name.abuchen.portfolio.junit.PortfolioBuilder;
 import name.abuchen.portfolio.junit.SecurityBuilder;
 import name.abuchen.portfolio.junit.TestCurrencyConverter;
 import name.abuchen.portfolio.model.Client;
+import name.abuchen.portfolio.model.Portfolio;
+import name.abuchen.portfolio.model.PortfolioTransferEntry;
 import name.abuchen.portfolio.model.Security;
 import name.abuchen.portfolio.model.VorabpauschaleEntry;
 import name.abuchen.portfolio.money.CurrencyUnit;
@@ -128,6 +132,68 @@ public class GermanTaxGainCalculatorTest
 
         // 2822.90 * 0.70 = 1976.03
         assertThat(r.getSales().get(0).getTaxableGain(), is(Money.of("EUR", 1_976_03)));
+    }
+
+    @Test
+    public void testSaleUsesOwnAccountLotsAndReportsAccount()
+    {
+        // same fungible security held in two accounts; a sale in B must take B's
+        // own (more expensive) lot, not A's older cheaper lot (pooled FIFO would)
+        Client client = new Client();
+        Security security = new SecurityBuilder("EUR").addTo(client);
+
+        Portfolio a = new PortfolioBuilder().buy(security, "2022-03-01", 100 * SHARE, 10_000_00).addTo(client);
+        a.setName("A");
+        Portfolio b = new PortfolioBuilder() //
+                        .buy(security, "2024-01-01", 100 * SHARE, 12_000_00) //
+                        .sell(security, "2025-06-01", 100 * SHARE, 15_000_00) //
+                        .addTo(client);
+        b.setName("B");
+
+        GermanTaxGainResult r = GermanTaxGainCalculator.compute(client, 2025, s -> BigDecimal.ONE, eur);
+
+        assertThat(r.getSales().size(), is(1));
+        SaleGain sale = r.getSales().get(0);
+        assertThat(sale.getAccount(), is(b));
+        assertThat(sale.getCost(), is(Money.of("EUR", 12_000_00)));      // B's own lot
+        assertThat(sale.getTaxableGain(), is(Money.of("EUR", 3_000_00)));
+        assertThat(r.getTotalTaxableGain(), is(Money.of("EUR", 3_000_00)));
+    }
+
+    @Test
+    public void testTransferCarriesCostBasisAndAccumulationToNewAccount()
+    {
+        // buy in A, accrue 2023 Vorabpauschale while in A, transfer A->B in 2024,
+        // sell in B in 2025: cost basis, original purchase date and the accrued
+        // Vorabpauschale must all follow the shares into B
+        Client client = new Client();
+        Security security = new SecurityBuilder("EUR").addTo(client);
+
+        Portfolio a = new PortfolioBuilder().buy(security, "2022-03-01", 100 * SHARE, 10_000_00).addTo(client);
+        a.setName("A");
+        Portfolio b = new PortfolioBuilder().sell(security, "2025-06-01", 100 * SHARE, 13_000_00).addTo(client);
+        b.setName("B");
+
+        PortfolioTransferEntry transfer = new PortfolioTransferEntry(a, b);
+        transfer.setSecurity(security);
+        transfer.setDate(LocalDateTime.of(2024, 6, 1, 0, 0));
+        transfer.setShares(100 * SHARE);
+        transfer.setAmount(10_000_00);
+        transfer.setCurrencyCode(CurrencyUnit.EUR);
+        transfer.insert();
+
+        client.addVorabpauschaleEntry(ledger(security, 2023, 150_00));
+
+        GermanTaxGainResult r = GermanTaxGainCalculator.compute(client, 2025, s -> BigDecimal.ONE, eur);
+
+        assertThat(r.getSales().size(), is(1));
+        SaleGain sale = r.getSales().get(0);
+        assertThat(sale.getAccount(), is(b));
+        assertThat(sale.getCost(), is(Money.of("EUR", 10_000_00)));
+        assertThat(sale.getAccumulatedVorabpauschale(), is(Money.of("EUR", 150_00)));
+        assertThat(sale.getLots().get(0).getPurchaseDate().toString(), is("2022-03-01"));
+        // (13000 - 10000 - 150) = 2850.00
+        assertThat(sale.getTaxableGain(), is(Money.of("EUR", 2_850_00)));
     }
 
     @Test
